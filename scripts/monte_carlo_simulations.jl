@@ -25,31 +25,18 @@ historical_data        = CSV.read(joinpath(project_root, "data", "historical_dat
 technology_data        = CSV.read(joinpath(project_root, "data", "technology_data.csv"), DataFrame)
 projection_deltas_data = CSV.read(joinpath(project_root, "data", "projection_deltas_data.csv"), DataFrame)
 
-# reescalo valores mientras no hemos actualizado el csv original
-for col in names(historical_data)
-    col_str = string(col)
-    if col_str == "spot_price_eur_gwh"
-        # historical_data[!, col] = historical_data[!, col] ./ 1000
-        continue
-    elseif endswith(col_str, "_eur_gwh") 
-        historical_data[!, col] = historical_data[!, col] .* 1000
-    elseif endswith(col_str, "_gwh") || endswith(col_str, "_gw")
-        historical_data[!, col] = historical_data[!, col] ./ 1000
-    end
-end
-
 # define the scenarios
 
 scenarios = DataFrame(
-    scenario_name         = ["baseline",       "nuclear",      "optimistic",  "climate change"],
+    scenario_name         = ["baseline",       "nuclear1",      "nuclear2",      "optimistic1",     "optimistic2",      "climate change"],
     
-    elas_anomaly          = [1.0,             1.0,            2.0,            1.0],
-    hydro_anomaly         = [1.0,             1.0,            1.0,            0.8],
+    elas_anomaly          = [1.0,             1.0,              1.0,             2.0,               2.0,                1.0],
+    hydro_anomaly         = [1.0,             1.0,              1.0,             1.0,               1.0,                0.8],
 
-    coal_phase_out        = [true,            true,           true,          true],
-    nuclear_phase_out     = [true,            false,          true,          true],
-    batt_cap_multiplier   = [1.0,             0.75,           1.25,           1.0],
-    ren_cap_multiplier    = [1.0,             0.9,            1.1,            1.0]
+    coal_phase_out        = [true,            true,             true,            true,              true,               true],
+    nuclear_phase_out     = [true,            false,            false,           true,              true,               true],
+    batt_cap_multiplier   = [1.0,             0.75,             0.5,             1.25,              1.5,                1.0],
+    ren_cap_multiplier    = [1.0,             0.9,              0.75,            1.1,               1.25,               1.0]
 )
 
 scenario_names = scenarios.scenario_name
@@ -64,7 +51,7 @@ baseline_years = [2023, 2024]
 variables_to_draw = [
     "residential_demand_gwh", "commercial_demand_gwh", "industrial_demand_gwh", 
     "coal_cap_gw", "combined_cycle_cap_gw", "gas_turbine_cap_gw", "vapor_turbine_cap_gw", "cogeneration_cap_gw", "diesel_cap_gw", 
-    "nonrenewable_waste_cap_gw", "nuclear_cap_gw", "conventional_hydro_cap_gw", "run_of_river_hydro_cap_gw", "pumped_hydro_turbine_cap_gw", 
+    "nonrenewable_waste_cap_gw", "nuclear_cap_gw", "conventional_hydro_cap_gw", "run_of_river_hydro_cap_gw", "pumped_hydro_turb_cap_gw", 
     "solar_pv_cap_gw", "solar_thermal_cap_gw", "wind_cap_gw", "other_renewable_cap_gw", "renewable_waste_cap_gw", "batteries_cap_gw",
     "cost_coal_eur_gwh", "cost_gas_eur_gwh", "cost_diesel_eur_gwh", "cost_uranium_eur_gwh", "eu_ets_price_eur_tco2",
 ]
@@ -76,7 +63,7 @@ deltas_dictionary = build_deltas_dictionary(projection_deltas_data, variables_to
 
 # ===== Monte Carlo Simulation Loop =====
 
-num_iterations = 10
+num_iterations = 100
 
 # define containers of results
 main_results      = Dict{String, Vector{NamedTuple}}()   
@@ -92,6 +79,10 @@ for scen in scenario_names
     delta_draws[scen]      = Vector{NamedTuple}(undef, num_iterations)
     inputs_realized[scen]  = Vector{NamedTuple}(undef, num_iterations)
 end
+
+# abro temporalmente un log
+log_path = joinpath(project_root, "output", "solver_log.txt")
+log_io   = open(log_path, "w")
 
 for scen in scenario_names
 
@@ -131,6 +122,12 @@ for scen in scenario_names
             scenario   = scenario_params,        # scenario-specific parameters
             iteration  = iteration_params        # iteration-specific parameters
             )
+
+        # log temporal para 
+        if results["mip_gap"] == -1.0
+            write(log_io, "Scenario: $scen | Iter: $iter | Year: $year | Day: $day_start | Status: INFEASIBLE\n")
+            flush(log_io)
+        end
 
         # 6. Store all the results 
         store_results!(
@@ -186,3 +183,6 @@ for scen in scenario_names
     # demand/capacity/cost inputs
     CSV.write(joinpath(detailed_dir, "$(scen)_inputs_realized.csv"), DataFrame(inputs_realized[scen]))
 end
+
+
+close(log_io)

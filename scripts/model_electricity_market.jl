@@ -251,7 +251,8 @@ function dispatch_electricity_market(;
         ph_stock[t] == ph_stock[t-1] 
         + sqrt(technical.ph_roundtrip_eff) * ph_in[t-1] 
         - ph_out[t-1] / sqrt(technical.ph_roundtrip_eff)) 
-    @constraint(model, ph_stock[T] == ph_stock[1])
+    # @constraint(model, ph_stock[T] == ph_stock[1])
+    @constraint(model, ph_stock[T] >= 0.2 * technical.ph_storage_cap_gwh)
     @constraint(model, [t=1:T], ph_in[t]  <= projected.pumped_hydro_pump_cap_gw[t])
     @constraint(model, [t=1:T], ph_out[t] <= projected.pumped_hydro_turb_cap_gw[t])
     @constraint(model, [t=1:T], quantity[t,16] == ph_out[t]) 
@@ -263,7 +264,8 @@ function dispatch_electricity_market(;
     batt_stock[t] == batt_stock[t-1] # * (1 - technical.batt_self_discharge) 
         + sqrt(technical.batt_roundtrip_eff) * batt_in[t-1] 
         - batt_out[t-1] / sqrt(technical.batt_roundtrip_eff))
-    @constraint(model, batt_stock[T] == batt_stock[1])
+    # @constraint(model, batt_stock[T] == batt_stock[1])
+    @constraint(model, batt_stock[T] >= 0.2 * technical.batt_duration * projected.batteries_cap_gw[1])
     @constraint(model, [t=1:T], batt_in[t]  <= projected.batteries_cap_gw[t])
     @constraint(model, [t=1:T], batt_out[t] <= projected.batteries_cap_gw[t])
     @constraint(model, [t=1:T], quantity[t,17] == batt_out[t])
@@ -275,8 +277,8 @@ function dispatch_electricity_market(;
     if status == MOI.OPTIMAL
 
         # Optimization params
-        gap_val           = relative_gap(model),
-        solve_time_val    = solve_time(model),   
+        gap_val           = Float64(relative_gap(model))
+        solve_time_val    = solve_time(model)  
 
         # Scalar welfare results
         cons_surplus      = sum(JuMP.value.(consumer_surplus))

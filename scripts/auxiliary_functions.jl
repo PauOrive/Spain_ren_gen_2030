@@ -35,7 +35,7 @@ function sample_time_window(
         historical_data
     )
 
-    return sampled_window_data
+    return sampled_window_data, year, day_start
 end
 
 
@@ -81,15 +81,7 @@ function sampling_procedure(
     var::String
     )
 
-    # ESTO QUIZÁS LO HEMOS DE QUITAR COMPLETAMENTE (ns si lo seguimos modelando)
-    # Discrete sampling for interconnectors capacity
-    if startswith(var, "imp_") || startswith(var, "exp_")
-        normalized_weights = weights ./ sum(weights)
-        idx = sample(1:length(deltas), Weights(normalized_weights))
-        return deltas[idx]
-    end
-
-    # Define parameters for the rest of the variables we are projecting
+    # Define general parameters for the variables we are projecting
     mu = mean(deltas)
     sigma = std(deltas)
 
@@ -127,8 +119,10 @@ function sampling_procedure(
         # Further constrain extreme values such that no sample is 10% below/above the min/max data point
         min_val = minimum(deltas) - 0.1 * abs(minimum(deltas))
         max_val = maximum(deltas) + 0.1 * abs(maximum(deltas))
-        return clamp(sampled_val, min_val, max_val)
-    end
+
+        # Final safety barrier to avoid negative capacities
+        return clamp(sampled_val, max(min_val, -0.99), max_val) 
+   end
 end
 
 
@@ -176,7 +170,7 @@ function sample_deltas(
     end
 
     # we don't have projections for PH pump capacity, but estimate a relation with PH turbination capacity
-    delta_draws["pumped_hydro_pump_cap_gw"] = 0.7 * delta_draws["pumped_hydro_turbine_cap_gw"]
+    delta_draws["pumped_hydro_pump_cap_gw"] = 0.7 * delta_draws["pumped_hydro_turb_cap_gw"]
 
     return delta_draws
 end
@@ -472,7 +466,7 @@ function store_results!(;
     )
 
     # ----- delta_draws -----
-    delta_draws_container[scen][iter] = delta_draws
+    delta_draws_container[scen][iter] = (; (Symbol(k) => v for (k,v) in delta_draws)...)
 
     # ----- inputs_realized -----
     inputs_realized[scen][iter] = (
@@ -499,7 +493,8 @@ function store_results!(;
         wind_cap_gw               = mean(projected_data.wind_cap_gw),
         other_renewable_cap_gw    = mean(projected_data.other_renewable_cap_gw),
         renewable_waste_cap_gw    = mean(projected_data.renewable_waste_cap_gw),
-        pumped_hydro_turb_cap_gw  = mean(projected_data.pumped_hydro_cap_gw),
+        pumped_hydro_turb_cap_gw  = mean(projected_data.pumped_hydro_turb_cap_gw),
+        pumped_hydro_pump_cap_gw  = mean(projected_data.pumped_hydro_pump_cap_gw),
         batteries_cap_gw          = mean(projected_data.batteries_cap_gw),
         
         # Fuel and EU ETS costs
