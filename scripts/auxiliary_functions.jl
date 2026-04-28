@@ -338,6 +338,8 @@ end
 function store_results!(;
     iter::Int,
     scen::String,
+    year::Int,
+    day_start::Int,
     results::Dict,                 # the output of dispatch_electricity_market
     delta_draws::Dict,      
     projected_data::DataFrame,   
@@ -354,6 +356,12 @@ function store_results!(;
     # ----- main_results -----
     main_results[scen][iter] = (
         iteration = iter,
+
+        # Solver diagnostics
+        mip_gap        = results["mip_gap"],
+        solve_time     = results["solve_time"],
+        baseline_year  = year,
+        day_start      = day_start,
 
         # Prices
         avg_price = results["avg_price"],
@@ -396,7 +404,9 @@ function store_results!(;
         battery_charge       = sum(results["battery_charge"])       * annual_factor,
         battery_out          = sum(results["battery_out"])          * annual_factor,
 
-        # Average and maximum storage stock
+        # Initial, average and maximum storage stock
+        initial_ph_stock     = first(results["pumped_hydro_storage"]),
+        initial_batt_stock   = first(results["battery_storage"]),
         mean_ph_stock        = mean(results["pumped_hydro_storage"]),
         mean_batt_stock      = mean(results["battery_storage"]),
         max_ph_stock         = maximum(results["pumped_hydro_storage"]),

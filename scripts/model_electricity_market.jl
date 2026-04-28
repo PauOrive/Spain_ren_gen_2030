@@ -42,7 +42,7 @@ technical_params = (
     ph_storage_cap_gwh = 50.0,
     ph_roundtrip_eff = 0.75,
     batt_roundtrip_eff = 0.9,
-    batt_decay = 0.001,
+    # batt_self_discharge = 0.002 / 24,
     batt_duration = 4.0,
     other_ren_min = 0.25,
     other_ren_max = 0.6,
@@ -65,7 +65,7 @@ function dispatch_electricity_market(;
 
     # Initialize the model solver
     model = Model(Gurobi.Optimizer)
-    set_optimizer_attribute(model, "OutputFlag", 0)
+    set_optimizer_attribute(model, "OutputFlag", 1)
     set_optimizer_attribute(model, "TimeLimit", 300)
     set_optimizer_attribute(model, "MIPGap", 0.03)
 
@@ -124,7 +124,7 @@ function dispatch_electricity_market(;
 
     # Total costs (fixed + running)
     @constraint(model, [t=1:T],
-        costs[t] == sum(technology.fixed_om_Meur_gwy[i] * 10e6 * iteration.avg_cap_year[i] * years_solving for i in 1:I) / T + running_costs[t])
+        costs[t] == sum(technology.fixed_om_Meur_gwy[i] * 1e6 * iteration.avg_cap_year[i] * years_solving for i in 1:I) / T + running_costs[t])
 
     # Running costs
     @constraint(model, [t=1:T],
@@ -245,7 +245,7 @@ function dispatch_electricity_market(;
 
     # Storage technologies ----
     # Pumped hydro
-    @constraint(model, ph_stock[1] == rand(Uniform(0.2, 0.8)) * technical.ph_storage_cap_gwh)
+    @constraint(model, ph_stock[1] == rand(Uniform(0.2, 0.6)) * technical.ph_storage_cap_gwh)
     @constraint(model, [t=2:T], ph_stock[t] <= technical.ph_storage_cap_gwh)
     @constraint(model, [t=2:T], 
         ph_stock[t] == ph_stock[t-1] 
@@ -257,10 +257,10 @@ function dispatch_electricity_market(;
     @constraint(model, [t=1:T], quantity[t,16] == ph_out[t]) 
 
     # Batteries (4h duration)
-    @constraint(model, batt_stock[1] == rand(Uniform(0.2, 0.8)) * technical.batt_duration * projected.batteries_cap_gw[1])
+    @constraint(model, batt_stock[1] == rand(Uniform(0.2, 0.6)) * technical.batt_duration * projected.batteries_cap_gw[1])
     @constraint(model, [t=2:T], batt_stock[t] <= technical.batt_duration * projected.batteries_cap_gw[t] / sqrt(technical.batt_roundtrip_eff))
     @constraint(model, [t=2:T], 
-        batt_stock[t] == (1 - technical.batt_decay) * batt_stock[t-1] 
+    batt_stock[t] == batt_stock[t-1] # * (1 - technical.batt_self_discharge) 
         + sqrt(technical.batt_roundtrip_eff) * batt_in[t-1] 
         - batt_out[t-1] / sqrt(technical.batt_roundtrip_eff))
     @constraint(model, batt_stock[T] == batt_stock[1])
@@ -273,6 +273,11 @@ function dispatch_electricity_market(;
     status = JuMP.termination_status(model)
 
     if status == MOI.OPTIMAL
+
+        # Optimization params
+        gap_val           = relative_gap(model),
+        solve_time_val    = solve_time(model),   
+
         # Scalar welfare results
         cons_surplus      = sum(JuMP.value.(consumer_surplus))
         prod_revenue      = sum(JuMP.value.(producer_revenue))
@@ -358,6 +363,10 @@ function dispatch_electricity_market(;
         curt_wind          = 1.0 - sum(q_vals[t,13] for t in 1:T) / sum(projected.wind_cap_gw[t]          * projected.wind_cap_factor[t]          for t in 1:T)
 
         results = Dict(
+            # Optimization parameters
+            "mip_gap"                   => gap_val,
+            "solve_time"                => solve_time_val,            
+
             # Prices
             "price"                     => price_vals,
             "avg_price"                 => avg_p,
@@ -448,6 +457,10 @@ function dispatch_electricity_market(;
         
         # Set all results to -1 such that the loop continues running
         results = Dict(
+        # Optimization parameters
+        "mip_gap"                   => -1.0,
+        "solve_time"                => -1.0,     
+        
         # Prices
         "price"                     => fill(-1.0, T),
         "avg_price"                 => -1.0,

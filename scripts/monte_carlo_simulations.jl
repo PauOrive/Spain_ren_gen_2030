@@ -25,14 +25,20 @@ historical_data        = CSV.read(joinpath(project_root, "data", "historical_dat
 technology_data        = CSV.read(joinpath(project_root, "data", "technology_data.csv"), DataFrame)
 projection_deltas_data = CSV.read(joinpath(project_root, "data", "projection_deltas_data.csv"), DataFrame)
 
-# define the scenarios
+# reescalo valores mientras no hemos actualizado el csv original
+for col in names(historical_data)
+    col_str = string(col)
+    if col_str == "spot_price_eur_gwh"
+        # historical_data[!, col] = historical_data[!, col] ./ 1000
+        continue
+    elseif endswith(col_str, "_eur_gwh") 
+        historical_data[!, col] = historical_data[!, col] .* 1000
+    elseif endswith(col_str, "_gwh") || endswith(col_str, "_gw")
+        historical_data[!, col] = historical_data[!, col] ./ 1000
+    end
+end
 
-# Revisar:
-# 1. Anomalies tiene sentido en elasticity y hydro.
-# 2. Sobre el resto: todo lo que es minimum o maximum generation constraints, así como efficiency parameters
-#    en vez de dejar un valor a technical_params y un "anomaly" aquí, dejemos sólo un valor aquí 
-#    (si cambian entre escenarios) o sólo el valor en technical_params (si no cambian entre escenarios)
-# 3. He añadido 4 parámetros más de modo que aquí se centralize TODO lo que cambia entre escenarios
+# define the scenarios
 
 scenarios = DataFrame(
     scenario_name         = ["baseline",       "nuclear",      "optimistic",  "climate change"],
@@ -70,7 +76,7 @@ deltas_dictionary = build_deltas_dictionary(projection_deltas_data, variables_to
 
 # ===== Monte Carlo Simulation Loop =====
 
-num_iterations = 10000
+num_iterations = 10
 
 # define containers of results
 main_results      = Dict{String, Vector{NamedTuple}}()   
@@ -129,20 +135,22 @@ for scen in scenario_names
         # 6. Store all the results 
         store_results!(
             # these are the id of each iteration run 
-            scen, 
-            iter,
+            scen      = scen, 
+            iter      = iter,
+            year      = year,
+            day_start = day_start,
 
             # these are the parameters needed to run the function
-            results, 
-            sampled_window_data, 
-            delta_draws_iter,
+            results        = results, 
+            projected_data = sampled_window_data, 
+            delta_draws    = delta_draws_iter,
 
             # these are the pre-allocated containers that are updated by the function
-            main_results, 
-            hourly_profiles, 
-            monthly_profiles,
-            delta_draws, 
-            inputs_realized
+            main_results          = main_results, 
+            hourly_profiles       = hourly_profiles, 
+            monthly_profiles      = monthly_profiles,
+            delta_draws_container = delta_draws, 
+            inputs_realized       = inputs_realized
             )
 
     end
