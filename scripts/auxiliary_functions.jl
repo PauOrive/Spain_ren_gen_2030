@@ -211,16 +211,16 @@ function compute_iteration_params(;
     T = nrow(projected)
 
     # Set minimum price to be 0.5 such that demand functions are well defined
-    projected.spot_price_eur_gwh .= ifelse.(projected.spot_price_eur_gwh .<= 0.5, 0.5, projected.spot_price_eur_gwh)
+    projected.spot_price_eur_mwh .= ifelse.(projected.spot_price_eur_mwh .<= 0.5, 0.5, projected.spot_price_eur_mwh)
 
     # Parameters defining domestic demand functions are re-computed in each simulation
-    b_residential = technical.elas_residential * scenario.elas_anomaly * projected.residential_demand_gwh ./ projected.spot_price_eur_gwh
-    b_commercial  = technical.elas_commercial  * scenario.elas_anomaly * projected.commercial_demand_gwh  ./ projected.spot_price_eur_gwh
-    b_industrial  = technical.elas_industrial  * scenario.elas_anomaly * projected.industrial_demand_gwh  ./ projected.spot_price_eur_gwh
+    b_residential = technical.elas_residential * scenario.elas_anomaly * projected.residential_demand_gwh ./ projected.spot_price_eur_mwh
+    b_commercial  = technical.elas_commercial  * scenario.elas_anomaly * projected.commercial_demand_gwh  ./ projected.spot_price_eur_mwh
+    b_industrial  = technical.elas_industrial  * scenario.elas_anomaly * projected.industrial_demand_gwh  ./ projected.spot_price_eur_mwh
 
-    a_residential = projected.residential_demand_gwh + b_residential .* projected.spot_price_eur_gwh
-    a_commercial  = projected.commercial_demand_gwh  + b_commercial  .* projected.spot_price_eur_gwh
-    a_industrial  = projected.industrial_demand_gwh  + b_industrial  .* projected.spot_price_eur_gwh
+    a_residential = projected.residential_demand_gwh + b_residential .* projected.spot_price_eur_mwh
+    a_commercial  = projected.commercial_demand_gwh  + b_commercial  .* projected.spot_price_eur_mwh
+    a_industrial  = projected.industrial_demand_gwh  + b_industrial  .* projected.spot_price_eur_mwh
 
     # average capacity to compute fixed costs
     tech_to_var = Dict(
