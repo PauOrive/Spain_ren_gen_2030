@@ -534,19 +534,19 @@ rename_dict_quant = {c: c.replace('_mwh', '_gwh').replace('_mw', '_gw') for c in
 full_df = full_df.rename(columns=rename_dict_quant)
 
 # 2. PRICES: multiply by 1000 (€/MWh → €/GWh)
-prices = [c for c in full_df.columns if c.startswith('cost_') or c.startswith('spot_')]
+prices = [c for c in full_df.columns if c.startswith('cost_')]
 full_df[prices] = full_df[prices] * 1000.0
 rename_dict_prices = {c: c.replace('_mwh', '_gwh') for c in prices}
 full_df = full_df.rename(columns=rename_dict_prices)
 
 official_order = [
-    'time_long', 'year', 'month', 'day', 'hour', 'spot_price_eur_gwh',
+    'time_long', 'year', 'month', 'day', 'hour', 'spot_price_eur_mwh',
     'residential_demand_gwh', 'commercial_demand_gwh', 'industrial_demand_gwh',
 
     # Capacities
     'coal_cap_gw', 'combined_cycle_cap_gw', 'gas_turbine_cap_gw', 'vapor_turbine_cap_gw',
     'cogeneration_cap_gw', 'diesel_cap_gw', 'nonrenewable_waste_cap_gw', 'nuclear_cap_gw',
-    'conventional_hydro_cap_gw', 'run_of_river_hydro_cap_gw', 'pumped_hydro_turbine_cap_gw', 'pumped_hydro_pump_cap_gw',
+    'conventional_hydro_cap_gw', 'run_of_river_hydro_cap_gw', 'pumped_hydro_turb_cap_gw', 'pumped_hydro_pump_cap_gw',
     'solar_pv_cap_gw', 'solar_thermal_cap_gw', 'wind_cap_gw', 'other_renewable_cap_gw',
     'renewable_waste_cap_gw', 'batteries_cap_gw',
 
