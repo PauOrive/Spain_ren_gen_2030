@@ -37,6 +37,7 @@ function dispatch_electricity_market(;
     @variable(model, imports[1:T, 1:C] >= 0)
     @variable(model, exports[1:T, 1:C] >= 0)
     @variable(model, quantity[1:T, 1:I] >= 0)
+    # @variable(model, load_shedding[1:T] >= 0)  
     @variable(model, costs[1:T] >= 0)
     @variable(model, consumer_surplus[1:T])
     @variable(model, producer_revenue[1:T])
@@ -56,9 +57,12 @@ function dispatch_electricity_market(;
     # Objective: maximize social welfare
     @objective(model, Max, sum(consumer_surplus[t] + producer_revenue[t] - costs[t] for t in 1:T) / T)
 
-    # Market clearing: generation + imports - exports = demand + storage charging
+    # Market clearing: generation + imports - exports + load_shedding = demand + storage charging
     @constraint(model, balance[t=1:T],
-        sum(quantity[t,i] for i in 1:I) + sum(imports[t,c] for c in 1:C) - sum(exports[t,c] for c in 1:C)
+        sum(quantity[t,i] for i in 1:I) 
+        + sum(imports[t,c] for c in 1:C) 
+        - sum(exports[t,c] for c in 1:C)
+        # + load_shedding[t]
         == (1 + technical.grid_loss_factor) * sum(demand[t,s] for s in 1:S) 
             + batt_in[t] 
             + ph_in[t])
@@ -83,7 +87,11 @@ function dispatch_electricity_market(;
 
     # Running costs
     @constraint(model, [t=1:T],
-        running_costs[t] == sum(technology.var_om_eur_gwh[i] * quantity[t,i] for i in 1:I) + fuel_costs[t] + emissions_costs[t])
+        running_costs[t] == 
+            sum(technology.var_om_eur_gwh[i] * quantity[t,i] for i in 1:I) 
+            + technical.voll_eur_mwh * 1e3 * load_shedding[t]
+            + fuel_costs[t] 
+            + emissions_costs[t])
 
     # Fuel costs
     @constraint(model, [t=1:T],
@@ -232,22 +240,29 @@ function dispatch_electricity_market(;
     if status == MOI.OPTIMAL
 
         # Optimization params
-        gap_val           = Float64(relative_gap(model))
+        gap_val           = relative_gap(model)
         solve_time_val    = solve_time(model)  
 
+        # Prices
+        price_vals        = JuMP.value.(price)
+        min_p             = minimum(price_vals)
+        avg_p             = mean(price_vals)
+        max_p             = maximum(price_vals)
+        std_p             = std(price_vals)
+        
+        # Demand
+        d_vals            = JuMP.value.(demand)
+        res_d             = d_vals[:, 1]
+        com_d             = d_vals[:, 2]
+        ind_d             = d_vals[:, 3]
+        total_d           = [sum(d_vals[t, :]) for t in 1:T]
+        
         # Scalar welfare results
         cons_surplus      = sum(JuMP.value.(consumer_surplus))
         prod_revenue      = sum(JuMP.value.(producer_revenue))
         total_cost        = sum(JuMP.value.(costs))
         prod_surplus      = prod_revenue - total_cost
         net_w             = cons_surplus + prod_surplus
-
-        # Price
-        price_vals        = JuMP.value.(price)
-        min_p             = minimum(price_vals)
-        avg_p             = mean(price_vals)
-        max_p             = maximum(price_vals)
-        std_p             = std(price_vals)
 
         # Generation by technology
         q_vals            = JuMP.value.(quantity)
@@ -269,6 +284,16 @@ function dispatch_electricity_market(;
         pumped_hydro      = q_vals[:, 16]
         batteries         = q_vals[:, 17]
 
+        # Pumped hydro
+        ph_in_vals        = JuMP.value.(ph_in)
+        ph_stock_vals     = JuMP.value.(ph_stock)
+        share_ren_in_ph   = sum(ph_in_vals .* share_ren_gen) / sum(ph_in_vals)
+
+        # Batteries
+        batt_in_vals        = JuMP.value.(batt_in)
+        batt_stock_vals     = JuMP.value.(batt_stock)
+        share_ren_in_batt   = sum(batt_in_vals .* share_ren_gen) / sum(batt_in_vals)   
+
         # Aggregated generation
         non_ren_gen       = [sum(q_vals[t, 1:8])  for t in 1:T]
         ren_gen           = [sum(q_vals[t, 9:15]) for t in 1:T]
@@ -279,25 +304,13 @@ function dispatch_electricity_market(;
         share_lc_gen      = low_c_gen ./ total_gen
         share_sto         = sto_out ./ total_gen
 
-        # Pumped hydro
-        ph_in_vals        = JuMP.value.(ph_in)
-        ph_stock_vals     = JuMP.value.(ph_stock)
-        share_ren_in_ph   = sum(ph_in_vals .* share_ren_gen) / sum(ph_in_vals)
-
-        # Batteries
-        batt_in_vals        = JuMP.value.(batt_in)
-        batt_stock_vals     = JuMP.value.(batt_stock)
-        share_ren_in_batt   = sum(batt_in_vals .* share_ren_gen) / sum(batt_in_vals)
-
         # Minimum non-renewable generation (constraint variable)
-        min_non_ren_vals  = JuMP.value.(min_non_ren_gen)
+        min_non_ren_vals  = JuMP.value.(min_non_ren_gen)     
 
-        # Demand
-        d_vals            = JuMP.value.(demand)
-        res_d             = d_vals[:, 1]
-        com_d             = d_vals[:, 2]
-        ind_d             = d_vals[:, 3]
-        total_d           = [sum(d_vals[t, :]) for t in 1:T]
+        # System risk
+        # load_s            = value.(load_shedding)
+        # total_ens         = sum(value.(load_shedding))
+        # lole_h            = sum(value.(load_shedding) .> 0.001) 
 
         # Imports and exports
         imp_vals          = JuMP.value.(imports)
@@ -305,10 +318,10 @@ function dispatch_electricity_market(;
         imp_por           = imp_vals[:, 2]
         imp_mor           = imp_vals[:, 3]
 
-        exports_vals      = JuMP.value.(exports)
-        exp_fra           = exports_vals[:, 1]
-        exp_por           = exports_vals[:, 2]
-        exp_mor           = exports_vals[:, 3]   
+        exp_vals          = JuMP.value.(exports)
+        exp_fra           = exp_vals[:, 1]
+        exp_por           = exp_vals[:, 2]
+        exp_mor           = exp_vals[:, 3]   
 
         # Emissions
         direct_e          = JuMP.value.(direct_emissions)
@@ -322,8 +335,8 @@ function dispatch_electricity_market(;
         results = Dict(
             # Optimization parameters
             "mip_gap"                   => gap_val,
-            "solve_time"                => solve_time_val,            
-
+            "solve_time"                => solve_time_val,         
+            
             # Prices
             "price"                     => price_vals,
             "avg_price"                 => avg_p,
@@ -331,17 +344,17 @@ function dispatch_electricity_market(;
             "min_price"                 => min_p,
             "std_price"                 => std_p,
 
-            # Welfare
-            "consumer_surplus"          => cons_surplus,
-            "producer_surplus"          => prod_surplus,
-            "total_cost"                => total_cost,
-            "net_welfare"               => net_w,
-
             # Demand
             "residential_demand"        => res_d,
             "commercial_demand"         => com_d,
             "industrial_demand"         => ind_d,
             "total_demand"              => total_d,
+
+            # Welfare
+            "consumer_surplus"          => cons_surplus,
+            "producer_surplus"          => prod_surplus,
+            "total_cost"                => total_cost,
+            "net_welfare"               => net_w,
 
             # Generation by technology
             "coal_gen"                  => coal,
@@ -379,6 +392,11 @@ function dispatch_electricity_market(;
             "share_low_carbon_gen"      => share_lc_gen,   
             "share_ren_ph_in"           => share_ren_in_ph,
             "share_ren_batt_in"         => share_ren_in_batt,
+
+            # System risk
+            # "load_shedding_gwh"         => load_s,
+            # "total_ens_gwh"             => total_ens,
+            # "lole_hours"                => lole_h,
 
             # Imports / exports
             "imports_FRA"               => imp_fra,
@@ -425,17 +443,17 @@ function dispatch_electricity_market(;
         "min_price"                 => -1.0,
         "std_price"                 => -1.0,
 
-        # Welfare
-        "consumer_surplus"          => -1.0,
-        "producer_surplus"          => -1.0,
-        "total_cost"                => -1.0,
-        "net_welfare"               => -1.0,
-
         # Demand
         "residential_demand"        => fill(-1.0, T),
         "commercial_demand"         => fill(-1.0, T),
         "industrial_demand"         => fill(-1.0, T),
         "total_demand"              => fill(-1.0, T),
+        
+        # Welfare
+        "consumer_surplus"          => -1.0,
+        "producer_surplus"          => -1.0,
+        "total_cost"                => -1.0,
+        "net_welfare"               => -1.0,
 
         # Generation by technology
         "coal_gen"                  => fill(-1.0, T),
@@ -473,6 +491,11 @@ function dispatch_electricity_market(;
         "share_low_carbon_gen"      => fill(-1.0, T),
         "share_ren_ph_in"           => -1.0,
         "share_ren_batt_in"         => -1.0,
+
+        # System risk
+        # "load_shedding_gwh"         => fill(-1.0, T),
+        # "total_ens_gwh"             => -1.0,
+        # "lole_hours"                => -1.0,        
 
         # Imports / exports
         "imports_FRA"               => fill(-1.0, T),
