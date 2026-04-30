@@ -246,9 +246,10 @@ print("--- IMPUTATION COMPLETE ---\n")
 # 4. GENERAL PROCESSING & MANUAL CAPACITIES
 # =========================================================
 
-# Fixed hydro capacities (manually set from REE official figures, MW)
+# Fixed hydro capacities (MW)
+# Sources: ENTSO-E Transparency Platform
 full_df['run_of_river_hydro_cap_mw']   = 1154.8
-full_df['pumped_hydro_turbine_cap_mw'] = 3417.5
+full_df['pumped_hydro_turbine_cap_mw'] = 3331.0
 full_df['pumped_hydro_pump_cap_mw']    = 2278.0
 full_df['conventional_hydro_cap_mw']   = 15771.4
 
