@@ -50,3 +50,7 @@ rsconnect/
 
 # Temporal Mac files
 .DS_Store
+
+# Gurobi logs
+gurobi.log
+gurobi_*.log
