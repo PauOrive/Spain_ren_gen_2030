@@ -240,13 +240,13 @@ function compute_iteration_params(;
     projected.spot_price_eur_mwh .= ifelse.(projected.spot_price_eur_mwh .<= 0.5, 0.5, projected.spot_price_eur_mwh)
 
     # Parameters defining domestic demand functions are re-computed in each simulation
-    b_residential = technical.elas_residential * scenario.elas_anomaly * projected.residential_demand_gwh ./ projected.spot_price_eur_mwh
-    b_commercial  = technical.elas_commercial  * scenario.elas_anomaly * projected.commercial_demand_gwh  ./ projected.spot_price_eur_mwh
-    b_industrial  = technical.elas_industrial  * scenario.elas_anomaly * projected.industrial_demand_gwh  ./ projected.spot_price_eur_mwh
+    b_residential = technical.elas_residential * scenario.elas_anomaly * projected.residential_demand_gwh ./ (projected.spot_price_eur_mwh * 1000)  
+    b_commercial  = technical.elas_commercial  * scenario.elas_anomaly * projected.commercial_demand_gwh  ./ (projected.spot_price_eur_mwh * 1000) 
+    b_industrial  = technical.elas_industrial  * scenario.elas_anomaly * projected.industrial_demand_gwh  ./ (projected.spot_price_eur_mwh * 1000) 
 
-    a_residential = projected.residential_demand_gwh + b_residential .* projected.spot_price_eur_mwh
-    a_commercial  = projected.commercial_demand_gwh  + b_commercial  .* projected.spot_price_eur_mwh
-    a_industrial  = projected.industrial_demand_gwh  + b_industrial  .* projected.spot_price_eur_mwh
+    a_residential = projected.residential_demand_gwh + b_residential .* (projected.spot_price_eur_mwh * 1000) 
+    a_commercial  = projected.commercial_demand_gwh  + b_commercial  .* (projected.spot_price_eur_mwh * 1000) 
+    a_industrial  = projected.industrial_demand_gwh  + b_industrial  .* (projected.spot_price_eur_mwh * 1000) 
 
     # average capacity to compute fixed costs
     tech_to_var = Dict(
@@ -389,17 +389,17 @@ function store_results!(;
         min_price = results["min_price"],
         std_price = results["std_price"],
 
-        # Total welfare
-        consumer_surplus = sum(results["consumer_surplus"]) * annual_factor,
-        producer_surplus = sum(results["producer_surplus"]) * annual_factor,
-        total_cost       = sum(results["total_cost"])       * annual_factor,
-        net_welfare      = sum(results["net_welfare"])      * annual_factor,
-
         # Total demand
         residential_demand = sum(results["residential_demand"]) * annual_factor,
         commercial_demand  = sum(results["commercial_demand"])  * annual_factor,
         industrial_demand  = sum(results["industrial_demand"])  * annual_factor,
         total_demand       = sum(results["total_demand"])       * annual_factor,
+        
+        # Total welfare
+        consumer_surplus = sum(results["consumer_surplus"]) * annual_factor,
+        producer_surplus = sum(results["producer_surplus"]) * annual_factor,
+        total_cost       = sum(results["total_cost"])       * annual_factor,
+        net_welfare      = sum(results["net_welfare"])      * annual_factor,
 
         # Total generation by technology
         coal_gen                  = sum(results["coal_gen"])                * annual_factor,
@@ -438,8 +438,6 @@ function store_results!(;
         low_carbon_gen       = sum(results["low_carbon_gen"])    * annual_factor,
         non_renewable_gen    = sum(results["non_renewable_gen"]) * annual_factor,
         storage_out          = sum(results["storage_out"])       * annual_factor,
-        share_ren_ph_in      = results["share_ren_ph_in"],
-        share_ren_batt_in    = results["share_ren_batt_in"],
 
         # Statistical measures of aggregated generation
         share_renewable_gen  = sum(results["renewable_gen"])         / sum(results["total_generation"]),
@@ -448,6 +446,16 @@ function store_results!(;
         share_min_non_ren    = sum(results["min_non_renewable_gen"]) / sum(results["total_generation"]),
         min_share_ren        = minimum(results["share_renewable_gen"]),
         max_share_ren        = maximum(results["share_renewable_gen"]),
+
+        # Curtailment
+        curt_solar_pv      = 1.0 - sum(results["solar_pv_gen"])      / (sum(results["solar_pv_gen"])      + sum(results["curt_solar_pv"])),
+        curt_solar_thermal = 1.0 - sum(results["solar_thermal_gen"]) / (sum(results["solar_thermal_gen"]) + sum(results["curt_solar_thermal"])),
+        curt_wind          = 1.0 - sum(results["wind_gen"])          / (sum(results["wind_gen"])          + sum(results["curt_wind"])),
+
+        # System risk
+        # load_shedding = sum(results["load_shedding"]) * annual_factor,
+        # total_ens     = results["total_ens"]          * annual_factor,
+        # lole_hours    = results["lole_hours"]         * annual_factor,
 
         # Imports / exports
         imports_FRA = sum(results["imports_FRA"]) * annual_factor,
@@ -458,13 +466,7 @@ function store_results!(;
         exports_MOR = sum(results["exports_MOR"]) * annual_factor,
 
         # Emissions
-        lifecycle_emissions = sum(results["lifecycle_emissions"]),
-        direct_emissions    = sum(results["direct_emissions"]),
-
-        # Curtailment
-        curt_solar_pv      = results["curtailment_solar_pv"],
-        curt_solar_thermal = results["curtailment_solar_thermal"],
-        curt_wind          = results["curtailment_wind"]
+        direct_emissions    = sum(results["direct_emissions"])
     )
 
     # ----- hourly_profiles -----

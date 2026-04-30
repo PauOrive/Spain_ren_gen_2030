@@ -89,7 +89,7 @@ function dispatch_electricity_market(;
     @constraint(model, [t=1:T],
         running_costs[t] == 
             sum(technology.var_om_eur_gwh[i] * quantity[t,i] for i in 1:I) 
-            + technical.voll_eur_mwh * 1e3 * load_shedding[t]
+            + technical.voll_eur_mwh * 1000 * load_shedding[t]
             + fuel_costs[t] 
             + emissions_costs[t])
 
@@ -244,7 +244,7 @@ function dispatch_electricity_market(;
         solve_time_val    = solve_time(model)  
 
         # Prices
-        price_vals        = JuMP.value.(price)
+        price_vals        = JuMP.value.(price) ./ 1000
         min_p             = minimum(price_vals)
         avg_p             = mean(price_vals)
         max_p             = maximum(price_vals)
@@ -287,12 +287,10 @@ function dispatch_electricity_market(;
         # Pumped hydro
         ph_in_vals        = JuMP.value.(ph_in)
         ph_stock_vals     = JuMP.value.(ph_stock)
-        share_ren_in_ph   = sum(ph_in_vals .* share_ren_gen) / sum(ph_in_vals)
 
         # Batteries
         batt_in_vals        = JuMP.value.(batt_in)
         batt_stock_vals     = JuMP.value.(batt_stock)
-        share_ren_in_batt   = sum(batt_in_vals .* share_ren_gen) / sum(batt_in_vals)   
 
         # Aggregated generation
         non_ren_gen       = [sum(q_vals[t, 1:8])  for t in 1:T]
@@ -306,6 +304,11 @@ function dispatch_electricity_market(;
 
         # Minimum non-renewable generation (constraint variable)
         min_non_ren_vals  = JuMP.value.(min_non_ren_gen)     
+
+        # Curtailment
+        curt_solar_pv      = projected.solar_pv_cap_gw      .* projected.solar_pv_cap_factor      .- solar_pv
+        curt_solar_thermal = projected.solar_thermal_cap_gw .* projected.solar_thermal_cap_factor .- solar_t
+        curt_wind          = projected.wind_cap_gw          .* projected.wind_cap_factor          .- wind
 
         # System risk
         # load_s            = value.(load_shedding)
@@ -325,12 +328,6 @@ function dispatch_electricity_market(;
 
         # Emissions
         direct_e          = JuMP.value.(direct_emissions)
-        life_e            = JuMP.value.(lifecycle_emissions)
-
-        # Curtailment
-        curt_solar_pv      = 1.0 - sum(q_vals[t,11] for t in 1:T) / sum(projected.solar_pv_cap_gw[t]      * projected.solar_pv_cap_factor[t]      for t in 1:T)
-        curt_solar_thermal = 1.0 - sum(q_vals[t,12] for t in 1:T) / sum(projected.solar_thermal_cap_gw[t] * projected.solar_thermal_cap_factor[t] for t in 1:T)
-        curt_wind          = 1.0 - sum(q_vals[t,13] for t in 1:T) / sum(projected.wind_cap_gw[t]          * projected.wind_cap_factor[t]          for t in 1:T)
 
         results = Dict(
             # Optimization parameters
@@ -393,10 +390,15 @@ function dispatch_electricity_market(;
             "share_ren_ph_in"           => share_ren_in_ph,
             "share_ren_batt_in"         => share_ren_in_batt,
 
+            # Curtailment
+            "curtailment_solar_pv"      => curt_solar_pv,
+            "curtailment_solar_thermal" => curt_solar_thermal,
+            "curtailment_wind"          => curt_wind
+            
             # System risk
-            # "load_shedding_gwh"         => load_s,
-            # "total_ens_gwh"             => total_ens,
-            # "lole_hours"                => lole_h,
+            # "load_shedding"           => load_s,
+            # "total_ens"               => total_ens,
+            # "lole_hours"              => lole_h,
 
             # Imports / exports
             "imports_FRA"               => imp_fra,
@@ -407,13 +409,7 @@ function dispatch_electricity_market(;
             "exports_MOR"               => exp_mor,
 
             # Emissions
-            "lifecycle_emissions"       => life_e,
-            "direct_emissions"          => direct_e,
-
-            # Curtailment
-            "curtailment_solar_pv"      => curt_solar_pv,
-            "curtailment_solar_thermal" => curt_solar_thermal,
-            "curtailment_wind"          => curt_wind
+            "direct_emissions"          => direct_e
         )
 
         # Post-process results to set small values to zero to ease comprehension of results
@@ -492,10 +488,15 @@ function dispatch_electricity_market(;
         "share_ren_ph_in"           => -1.0,
         "share_ren_batt_in"         => -1.0,
 
+        # Curtailment
+        "curtailment_solar_pv"      => -1.0,
+        "curtailment_solar_thermal" => -1.0,
+        "curtailment_wind"          => -1.0,
+        
         # System risk
-        # "load_shedding_gwh"         => fill(-1.0, T),
-        # "total_ens_gwh"             => -1.0,
-        # "lole_hours"                => -1.0,        
+        # "load_shedding"           => fill(-1.0, T),
+        # "total_ens"               => -1.0,
+        # "lole_hours"              => -1.0,        
 
         # Imports / exports
         "imports_FRA"               => fill(-1.0, T),
@@ -506,13 +507,7 @@ function dispatch_electricity_market(;
         "exports_MOR"               => fill(-1.0, T),
 
         # Emissions
-        "lifecycle_emissions"       => fill(-1.0, T),
-        "direct_emissions"          => fill(-1.0, T),
-        
-        # Curtailment
-        "curtailment_solar_pv"      => -1.0,
-        "curtailment_solar_thermal" => -1.0,
-        "curtailment_wind"          => -1.0
+        "direct_emissions"          => fill(-1.0, T)
         )
 
     end
