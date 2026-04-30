@@ -74,15 +74,11 @@ inputs_realized   = Dict{String, Vector{NamedTuple}}()
 
 for scen in scenario_names
     main_results[scen]     = Vector{NamedTuple}(undef, num_iterations)
-    hourly_profiles[scen]  = Vector{NamedTuple}(undef, num_iterations)
-    monthly_profiles[scen] = Vector{NamedTuple}(undef, num_iterations)
+    hourly_profiles[scen]  = Vector{NamedTuple}()
+    monthly_profiles[scen] = Vector{NamedTuple}()
     delta_draws[scen]      = Vector{NamedTuple}(undef, num_iterations)
     inputs_realized[scen]  = Vector{NamedTuple}(undef, num_iterations)
 end
-
-# abro temporalmente un log
-log_path = joinpath(project_root, "output", "solver_log.txt")
-log_io   = open(log_path, "w")
 
 for scen in scenario_names
 
@@ -122,12 +118,6 @@ for scen in scenario_names
             scenario   = scenario_params,        # scenario-specific parameters
             iteration  = iteration_params        # iteration-specific parameters
             )
-
-        # log temporal para 
-        if results["mip_gap"] == -1.0
-            write(log_io, "Scenario: $scen | Iter: $iter | Year: $year | Day: $day_start | Status: INFEASIBLE\n")
-            flush(log_io)
-        end
 
         # 6. Store all the results 
         store_results!(
@@ -183,6 +173,3 @@ for scen in scenario_names
     # demand/capacity/cost inputs
     CSV.write(joinpath(detailed_dir, "$(scen)_inputs_realized.csv"), DataFrame(inputs_realized[scen]))
 end
-
-
-close(log_io)

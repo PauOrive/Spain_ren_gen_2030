@@ -470,28 +470,54 @@ function store_results!(;
     )
 
     # ----- hourly_profiles -----
-    hourly_profiles[scen][iter] = (
-        price     = calculate_hourly_averages(results["price"]),
-        ph_in     = calculate_hourly_averages(results["pumped_hydro_pumping"]),
-        ph_out    = calculate_hourly_averages(results["pumped_hydro_out"]),
-        batt_in   = calculate_hourly_averages(results["battery_charge"]),
-        batt_out  = calculate_hourly_averages(results["battery_out"]),        
-        emissions = calculate_hourly_averages(results["direct_emissions"]),
-        ren_share = calculate_hourly_averages(results["share_renewable_gen"]),
-        lc_share  = calculate_hourly_averages(results["share_low_carbon_gen"])
-    )
+    for h in 1:24
+        push!(hourly_profiles[scen], (
+            iteration  = iter,
+            hour       = h,
+            price      = calculate_hourly_averages(results["price"])[h],
+            solar_pv   = calculate_hourly_averages(results["solar_pv_gen"])[h],
+            wind       = calculate_hourly_averages(results["wind_gen"])[h],
+            nuclear    = calculate_hourly_averages(results["nuclear_gen"])[h],
+            conv_hydro = calculate_hourly_averages(results["conventional_hydro_gen"])[h],
+            ccgt       = calculate_hourly_averages(results["combined_cycle_gen"])[h],
+            cogen      = calculate_hourly_averages(results["cogeneration_gen"])[h],
+            total_gen  = calculate_hourly_averages(results["total_generation"])[h],
+            ren_gen    = calculate_hourly_averages(results["renewable_gen"])[h],
+            non_ren_gen = calculate_hourly_averages(results["non_renewable_gen"])[h],
+            batt_in    = calculate_hourly_averages(results["battery_charge"])[h],
+            batt_out   = calculate_hourly_averages(results["battery_out"])[h],
+            ph_in      = calculate_hourly_averages(results["pumped_hydro_pumping"])[h],
+            ph_out     = calculate_hourly_averages(results["pumped_hydro_out"])[h],
+            ren_share  = calculate_hourly_averages(results["share_renewable_gen"])[h],
+            lc_share   = calculate_hourly_averages(results["share_low_carbon_gen"])[h],
+            emissions  = calculate_hourly_averages(results["direct_emissions"])[h]
+        ))
+    end
 
     # ----- monthly_profiles -----
-    monthly_profiles[scen][iter] = (
-        price     = calculate_monthly_averages(results["price"]),
-        ph_in     = calculate_monthly_averages(results["pumped_hydro_pumping"]),
-        ph_out    = calculate_monthly_averages(results["pumped_hydro_out"]),
-        batt_in   = calculate_monthly_averages(results["battery_charge"]),
-        batt_out  = calculate_monthly_averages(results["battery_out"]),     
-        emissions = calculate_monthly_averages(results["direct_emissions"]),
-        ren_share = calculate_monthly_averages(results["share_renewable_gen"]),
-        lc_share  = calculate_monthly_averages(results["share_low_carbon_gen"])
-    )
+    for m in 1:12
+        push!(monthly_profiles[scen], (
+            iteration  = iter,
+            month      = m,
+            price      = calculate_monthly_averages(results["price"])[h],
+            solar_pv   = calculate_monthly_averages(results["solar_pv_gen"])[h],
+            wind       = calculate_monthly_averages(results["wind_gen"])[h],
+            nuclear    = calculate_monthly_averages(results["nuclear_gen"])[h],
+            conv_hydro = calculate_monthly_averages(results["conventional_hydro_gen"])[h],
+            ccgt       = calculate_monthly_averages(results["combined_cycle_gen"])[h],
+            cogen      = calculate_monthly_averages(results["cogeneration_gen"])[h],
+            total_gen  = calculate_monthly_averages(results["total_generation"])[h],
+            ren_gen    = calculate_monthly_averages(results["renewable_gen"])[h],
+            non_ren_gen = calculate_monthly_averages(results["non_renewable_gen"])[h],
+            batt_in    = calculate_monthly_averages(results["battery_charge"])[h],
+            batt_out   = calculate_monthly_averages(results["battery_out"])[h],
+            ph_in      = calculate_monthly_averages(results["pumped_hydro_pumping"])[h],
+            ph_out     = calculate_monthly_averages(results["pumped_hydro_out"])[h],
+            ren_share  = calculate_monthly_averages(results["share_renewable_gen"])[h],
+            lc_share   = calculate_monthly_averages(results["share_low_carbon_gen"])[h],
+            emissions  = calculate_monthly_averages(results["direct_emissions"])[h]
+        ))
+    end
 
     # ----- delta_draws -----
     delta_draws_container[scen][iter] = (; (Symbol(k) => v for (k,v) in delta_draws)...)
