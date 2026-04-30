@@ -72,11 +72,11 @@ conventional_hydro_cap_gw,2024,0,Red Eléctrica,central,1
 run_of_river_hydro_cap_gw,2023,0.039,Red Eléctrica,central,1
 run_of_river_hydro_cap_gw,2024,0.039,Red Eléctrica,central,1
 pumped_hydro_turb_cap_gw,2023,0.201,PNIEC,central,1
-pumped_hydro_turb_cap_gw,2023,0.201,PNIEC,central,2
-pumped_hydro_turb_cap_gw,2023,0.201,PNIEC,central,3
-pumped_hydro_turb_cap_gw,2023,0.201,PNIEC,central,4
-pumped_hydro_turb_cap_gw,2023,0.201,PNIEC,central,5
-pumped_hydro_turb_cap_gw,2023,0.201,PNIEC,central,6
+pumped_hydro_turb_cap_gw,2023,0.921,Aurora Energy Research,central,1
+pumped_hydro_turb_cap_gw,2023,1.071,Red Eléctrica,central,1
+pumped_hydro_turb_cap_gw,2024,0.201,PNIEC,central,1
+pumped_hydro_turb_cap_gw,2024,0.921,Aurora Energy Research,central,1
+pumped_hydro_turb_cap_gw,2024,1.071,Red Eléctrica,central,1
 solar_pv_cap_gw,2023,2.029,PNIEC,central,1
 solar_pv_cap_gw,2023,0.394,Electricity Optimization,central-old,0.2
 solar_pv_cap_gw,2023,1.352,Aurora Energy Research,upper bound,0.5
