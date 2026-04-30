@@ -4,30 +4,30 @@
 *when we have the definitive version, number the scripts to make order clearer*
 
 This folder contains the scripts needed to replicate the paper. 
-The scripts defining the model and to run the Monte Carlo simulations are written in Julia, since we think is the most suited for this kind of optimization models. Data extraction, processing and analysis of results is done in R (Pau) or Python (Cristobal)
+The scripts defining the model and to run the Monte Carlo simulations are written in Julia, since we think is the most suited for this kind of optimization models. Data extraction, processing and analysis of results is done in R & Python 
 
 They are organized as follows:
 
 1. Scripts to get the historical calibration data
 
 These are non essential to replicate the paper as we provide the complete datasets, but show where the data was sourced from.
-Note that both the [ESIOS](https://api.esios.ree.es/) and [ENTSO-e](https://transparencyplatform.zendesk.com/hc/en-us/articles/12845911031188-How-to-get-security-token) API request a valid personal token, which you can ask in the hyperlinks to each source.
+Note that both the [ESIOS](https://api.esios.ree.es/) and [ENTSO-E](https://transparencyplatform.zendesk.com/hc/en-us/articles/12845911031188-How-to-get-security-token) API request a valid personal token, which you can ask in the hyperlinks to each source.
 
--   Codigo_historical_data.py does everything in one go: downloads hourly generation, demand, spot prices, interconnection flows and installed capacities from ESIOS, fetches disaggregated hydro data from ENTSO-E, pulls fuel and carbon costs from MIBGAS and Yahoo Finance (with local Excel fallbacks for ETS and uranium), applies a three-step missing data imputation, and saves the final dataset to data/historical_data.csv. It is the only script you need to run to regenerate the main dataset from scratch.
+-   `Codigo_historical_data.py`: does everything in one go. It downloads hourly generation, demand, spot prices, interconnection flows and installed capacities from ESIOS, fetches disaggregated hydro data from ENTSO-E, pulls fuel and carbon costs from MIBGAS and Yahoo Finance (with local Excel fallbacks for ETS and uranium), applies a three-step missing data imputation, and saves the final dataset to `data/historical_data.csv`. It is the only script you need to run to regenerate the main dataset from scratch.
 
-2. Scripts to run the Monte Carlo Simulations
+## 2. Scripts to run the Monte Carlo Simulations
 
--   21_model_electricity_market.jl defines the model we have used to simulate the Spanish electricity market
--   22_auxiliary_functions.jl *(or 22_model_calibration.ipynb)* shows how the model replicates historical patterns  
--   23_monte_carlo_simulations.jl runs the Monte Carlo Simulations for each scenario and saves the results into the output/detaild_results folder as csv. files
+-   `model_electricity_market.jl`: defines the mathematical optimization model used to simulate the Spanish electricity market.
+-   `auxiliary_functions.jl` *(and `model_calibration.ipynb`)*: contain auxiliary processing and demonstrate how the model replicates historical patterns.
+-   `monte_carlo_simulations.jl`: runs the Monte Carlo Simulations for each scenario and saves the results into the `output/detailed_results` folder as .csv files.
 
-These core scripts of the project work with the following datasets in data/
+These core scripts of the project work with the following datasets in the `data/` folder:
 
--   historical_data
--   technology_data
--   projection_deltas
--   technical_params
--   scenario_params
+-   historical_data.csv
+-   technology_data.csv
+-   projection_deltas_data.csv
+-   technical_params.csv
+-   scenario_params.csv
 
 Forking this repository you can play adjusting the model and/or scenario-specific assumptions to test how the model responds to other assumptions.
 Note that you will need a [Gurobi license](https://www.gurobi.com/academia/academic-program-and-licenses/) to run the model (free for students!). 
@@ -39,4 +39,5 @@ If you do, we would love to get your feedback!
 -   32_main_results.R creates the summary tables and graphs for the main results (distributions for generation and prices)
 -   33_other_grpahs.R *(or 33_annex_graphs. R)* creates the rest of graphs
 
-All graphs are saved into the output/graphs folder.
+All graphs are saved into the `output/graphs` folder.
+
