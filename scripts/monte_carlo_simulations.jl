@@ -28,15 +28,14 @@ projection_deltas_data = CSV.read(joinpath(project_root, "data", "projection_del
 # define the scenarios
 
 scenarios = DataFrame(
-    scenario_name         = ["baseline",       "nuclear1",      "nuclear2",      "optimistic1",     "optimistic2",      "climate change"],
-    
-    elas_anomaly          = [1.0,             1.0,              1.0,             2.0,               2.0,                1.0],
-    hydro_anomaly         = [1.0,             1.0,              1.0,             1.0,               1.0,                0.8],
-
-    coal_phase_out        = [true,            true,             true,            true,              true,               true],
-    nuclear_phase_out     = [true,            false,            false,           true,              true,               true],
-    batt_cap_multiplier   = [1.0,             0.75,             0.5,             1.25,              1.5,                1.0],
-    ren_cap_multiplier    = [1.0,             0.9,              0.75,            1.1,               1.25,               1.0]
+    scenario_name       = ["baseline", "nuclear",  "optimistic", "climate change"],
+    elas_anomaly        = [1.0,        1.0,         2.0,          1.0],
+    hydro_anomaly       = [1.0,        1.0,         1.0,          0.8],
+    coal_phase_out      = [true,       true,        true,         true],
+    nuclear_phase_out   = [true,       false,       true,         true],
+    climate_demand      = [false,      false,       false,        true],
+    batt_cap_multiplier = [1.0,        0.5,         1.5,          1.0],
+    ren_cap_multiplier  = [1.0,        0.75,        1.25,         1.0]
 )
 
 scenario_names = scenarios.scenario_name

@@ -180,7 +180,7 @@ function sample_deltas(
 
         # Nuclear: avoid phase-out
         elseif var == "nuclear_cap_gw" && !scenario.nuclear_phase_out
-            delta_adjusted = 0.0
+            delta_adjusted = 0.0        
 
         # Batteries scaling
         elseif var == "batteries_cap_gw"
@@ -220,6 +220,17 @@ function apply_deltas!(
     for (var, delta) in delta_draws
         sampled_window_data[!, var] .*= (1 + delta)
     end
+
+    # Climate change scenario increases cooling demand and reduces heating demand
+    if scenario.climate_demand
+        climate_multipliers = [0.98, 0.98, 0.99, 1.01, 1.03, 1.06, 1.10, 1.10, 1.06, 1.03, 0.99, 0.98]
+        for t in 1:nrow(sampled_window_data)
+            m = sampled_window_data.month[t]
+            sampled_window_data.residential_demand_gwh[t] *= climate_multipliers[m]
+            sampled_window_data.commercial_demand_gwh[t]  *= climate_multipliers[m]
+        end
+    end
+
 end
 
 # ===== 6. Auxiliary function to define iteration-specific parameters =====
