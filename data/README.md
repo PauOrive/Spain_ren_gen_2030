@@ -14,7 +14,15 @@ The rest of the files feed directly into the Monte Carlo simulation:
 
 - `scenario_params.csv` and `technical_params.csv` hold parameters that remain fixed across all simulations but differ between scenarios or model components — things like demand elasticities, hydro availability adjustments, or storage efficiencies.
 
-- `technology_data.csv` contains one row per generation technology and includes everything the model needs to compute costs and emissions: heat rates, efficiencies, variable and fixed O&M costs, and CO₂ emission intensities (both direct and lifecycle).
+- `technology_data.csv` contains one row per generation technology and includes everything the model needs to compute costs and emissions: efficiencies, variable and fixed O&M costs, and CO₂ emission intensities. 
+The cost metrics (variable and fixed O&M) and emission intensities in this file are largely derived from the US National Renewable Energy Laboratory (NREL) Annual Technology Baseline (ATB). While NREL is a US-based institution, its ATB dataset is widely considered a gold standard in global energy systems modeling. We use this dataset because core power generation technologies (like solar PV modules, wind turbines, and gas turbines) are traded in highly globalized supply chains, making their relative capital and operational costs internationally comparable. Using NREL ATB ensures our model relies on a transparent, standardized, and peer-reviewed baseline for the technical and economic performance of these assets.
+
+**NREL Data Transformation Methodology:**
+To adapt the raw NREL ATB metrics for the Julia model, the following mathematical conversions were applied:
+*   **Efficiency:** Derived from NREL's Heat Rates using the physical conversion `Efficiency = 3.412 / Heat Rate [MMBtu/MWh]`.
+*   **Variable O&M (`var_om_eur_gwh`):** NREL reports these costs in `$/MWh`. Assuming an approximate long-term 1:1 EUR/USD parity, this translates to `€/MWh`. It is then multiplied by 1000 to match the model's energy scale of `€/GWh`.
+*   **Fixed O&M (`fixed_om_Meur_gwy`):** NREL reports fixed costs in `$/kW-yr`. Mathematically, `1 $/kW-yr` is exactly equivalent to `1 Million $ / GW-yr`. Assuming 1:1 EUR/USD parity, the raw NREL values are directly adopted as `Millions of € / GW-yr`.
+*   **Direct Emissions (`direct_e_tco2_gwh`):** Based on standard IPCC/NREL carbon intensities for fossil fuels, scaled to tons of CO₂ per GWh (e.g., ~360 tCO₂/GWh for Combined Cycle Gas).
 
 There is also an `other/` subfolder with a few additional files explained further below.
 
