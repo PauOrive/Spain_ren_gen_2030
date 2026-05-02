@@ -20,7 +20,7 @@ function dispatch_electricity_market(;
 
     # Initialize the model solver
     model = Model(Gurobi.Optimizer)
-    set_optimizer_attribute(model, "OutputFlag", 1)
+    set_optimizer_attribute(model, "OutputFlag", 0)
     set_optimizer_attribute(model, "TimeLimit", 300)
     set_optimizer_attribute(model, "MIPGap", 0.03)
 
@@ -37,7 +37,7 @@ function dispatch_electricity_market(;
     @variable(model, imports[1:T, 1:C] >= 0)
     @variable(model, exports[1:T, 1:C] >= 0)
     @variable(model, quantity[1:T, 1:I] >= 0)
-    # @variable(model, load_shedding[1:T] >= 0)  
+    @variable(model, load_shedding[1:T] >= 0)  
     @variable(model, costs[1:T] >= 0)
     @variable(model, consumer_surplus[1:T])
     @variable(model, producer_revenue[1:T])
@@ -45,7 +45,6 @@ function dispatch_electricity_market(;
     @variable(model, fuel_costs[1:T] >= 0)
     @variable(model, emissions_costs[1:T] >= 0)
     @variable(model, direct_emissions[1:T] >= 0)
-    @variable(model, lifecycle_emissions[1:T] >= 0)
     @variable(model, min_non_ren_gen[1:T] >= 0)
     @variable(model, ph_in[1:T] >= 0)
     @variable(model, ph_out[1:T] >= 0)
@@ -62,7 +61,7 @@ function dispatch_electricity_market(;
         sum(quantity[t,i] for i in 1:I) 
         + sum(imports[t,c] for c in 1:C) 
         - sum(exports[t,c] for c in 1:C)
-        # + load_shedding[t]
+        + load_shedding[t]
         == (1 + technical.grid_loss_factor) * sum(demand[t,s] for s in 1:S) 
             + batt_in[t] 
             + ph_in[t])
@@ -104,10 +103,6 @@ function dispatch_electricity_market(;
     # Direct emissions (stored only, not used in objective)
     @constraint(model, [t=1:T],
         direct_emissions[t] == sum(technology.fossil_fuel[i] * quantity[t,i] * technology.direct_e_tco2_gwh[i] for i in 1:I))
-
-    # Lifecycle emissions (stored only, not used in objective)
-    @constraint(model, [t=1:T],
-        lifecycle_emissions[t] == sum(technology.fossil_fuel[i] * quantity[t,i] * technology.lifecycle_e_tco2_gwh[i] for i in 1:I))
 
     # EU ETS costs
     @constraint(model, [t=1:T],
@@ -289,8 +284,8 @@ function dispatch_electricity_market(;
         ph_stock_vals     = JuMP.value.(ph_stock)
 
         # Batteries
-        batt_in_vals        = JuMP.value.(batt_in)
-        batt_stock_vals     = JuMP.value.(batt_stock)
+        batt_in_vals      = JuMP.value.(batt_in)
+        batt_stock_vals   = JuMP.value.(batt_stock)
 
         # Aggregated generation
         non_ren_gen       = [sum(q_vals[t, 1:8])  for t in 1:T]
@@ -311,9 +306,9 @@ function dispatch_electricity_market(;
         curt_wind          = projected.wind_cap_gw          .* projected.wind_cap_factor          .- wind
 
         # System risk
-        # load_s            = value.(load_shedding)
-        # total_ens         = sum(value.(load_shedding))
-        # lole_h            = sum(value.(load_shedding) .> 0.001) 
+        load_s            = value.(load_shedding)
+        total_ens         = sum(value.(load_shedding))
+        lole_h            = sum(value.(load_shedding) .> 0.001) 
 
         # Imports and exports
         imp_vals          = JuMP.value.(imports)
@@ -387,18 +382,16 @@ function dispatch_electricity_market(;
             "min_non_renewable_gen"     => min_non_ren_vals,
             "share_renewable_gen"       => share_ren_gen,
             "share_low_carbon_gen"      => share_lc_gen,   
-            "share_ren_ph_in"           => share_ren_in_ph,
-            "share_ren_batt_in"         => share_ren_in_batt,
 
             # Curtailment
             "curtailment_solar_pv"      => curt_solar_pv,
             "curtailment_solar_thermal" => curt_solar_thermal,
-            "curtailment_wind"          => curt_wind
+            "curtailment_wind"          => curt_wind,
             
             # System risk
-            # "load_shedding"           => load_s,
-            # "total_ens"               => total_ens,
-            # "lole_hours"              => lole_h,
+            "load_shedding"             => load_s,
+            "total_ens"                 => total_ens,
+            "lole_hours"                => lole_h,
 
             # Imports / exports
             "imports_FRA"               => imp_fra,
@@ -410,7 +403,7 @@ function dispatch_electricity_market(;
 
             # Emissions
             "direct_emissions"          => direct_e
-        )
+            )
 
         # Post-process results to set small values to zero to ease comprehension of results
         threshold = 1e-3
@@ -485,8 +478,6 @@ function dispatch_electricity_market(;
         "min_non_renewable_gen"     => fill(-1.0, T),
         "share_renewable_gen"       => fill(-1.0, T),
         "share_low_carbon_gen"      => fill(-1.0, T),
-        "share_ren_ph_in"           => -1.0,
-        "share_ren_batt_in"         => -1.0,
 
         # Curtailment
         "curtailment_solar_pv"      => -1.0,
@@ -494,9 +485,9 @@ function dispatch_electricity_market(;
         "curtailment_wind"          => -1.0,
         
         # System risk
-        # "load_shedding"           => fill(-1.0, T),
-        # "total_ens"               => -1.0,
-        # "lole_hours"              => -1.0,        
+        "load_shedding"             => fill(-1.0, T),
+        "total_ens"                 => -1.0,
+        "lole_hours"                => -1.0,        
 
         # Imports / exports
         "imports_FRA"               => fill(-1.0, T),

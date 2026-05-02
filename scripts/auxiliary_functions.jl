@@ -215,7 +215,8 @@ end
 
 function apply_deltas!(
     sampled_window_data::DataFrame,
-    delta_draws::Dict{String, Float64}
+    delta_draws::Dict{String, Float64},
+    scenario::NamedTuple
     )
     for (var, delta) in delta_draws
         sampled_window_data[!, var] .*= (1 + delta)
@@ -459,14 +460,14 @@ function store_results!(;
         max_share_ren        = maximum(results["share_renewable_gen"]),
 
         # Curtailment
-        curt_solar_pv      = 1.0 - sum(results["solar_pv_gen"])      / (sum(results["solar_pv_gen"])      + sum(results["curt_solar_pv"])),
-        curt_solar_thermal = 1.0 - sum(results["solar_thermal_gen"]) / (sum(results["solar_thermal_gen"]) + sum(results["curt_solar_thermal"])),
-        curt_wind          = 1.0 - sum(results["wind_gen"])          / (sum(results["wind_gen"])          + sum(results["curt_wind"])),
+        curt_solar_pv      = 1.0 - sum(results["solar_pv_gen"])      / (sum(results["solar_pv_gen"])      + sum(results["curtailment_solar_pv"])),
+        curt_solar_thermal = 1.0 - sum(results["solar_thermal_gen"]) / (sum(results["solar_thermal_gen"]) + sum(results["curtailment_solar_thermal"])),
+        curt_wind          = 1.0 - sum(results["wind_gen"])          / (sum(results["wind_gen"])          + sum(results["curtailment_wind"])),
 
         # System risk
-        # load_shedding = sum(results["load_shedding"]) * annual_factor,
-        # total_ens     = results["total_ens"]          * annual_factor,
-        # lole_hours    = results["lole_hours"]         * annual_factor,
+        load_shedding = sum(results["load_shedding"]) * annual_factor,
+        total_ens     = results["total_ens"]          * annual_factor,
+        lole_hours    = results["lole_hours"]         * annual_factor,
 
         # Imports / exports
         imports_FRA = sum(results["imports_FRA"]) * annual_factor,
@@ -510,23 +511,23 @@ function store_results!(;
         push!(monthly_profiles[scen], (
             iteration  = iter,
             month      = m,
-            price      = calculate_monthly_averages(results["price"])[h],
-            solar_pv   = calculate_monthly_averages(results["solar_pv_gen"])[h],
-            wind       = calculate_monthly_averages(results["wind_gen"])[h],
-            nuclear    = calculate_monthly_averages(results["nuclear_gen"])[h],
-            conv_hydro = calculate_monthly_averages(results["conventional_hydro_gen"])[h],
-            ccgt       = calculate_monthly_averages(results["combined_cycle_gen"])[h],
-            cogen      = calculate_monthly_averages(results["cogeneration_gen"])[h],
-            total_gen  = calculate_monthly_averages(results["total_generation"])[h],
-            ren_gen    = calculate_monthly_averages(results["renewable_gen"])[h],
-            non_ren_gen = calculate_monthly_averages(results["non_renewable_gen"])[h],
-            batt_in    = calculate_monthly_averages(results["battery_charge"])[h],
-            batt_out   = calculate_monthly_averages(results["battery_out"])[h],
-            ph_in      = calculate_monthly_averages(results["pumped_hydro_pumping"])[h],
-            ph_out     = calculate_monthly_averages(results["pumped_hydro_out"])[h],
-            ren_share  = calculate_monthly_averages(results["share_renewable_gen"])[h],
-            lc_share   = calculate_monthly_averages(results["share_low_carbon_gen"])[h],
-            emissions  = calculate_monthly_averages(results["direct_emissions"])[h]
+            price      = calculate_monthly_averages(results["price"])[m],
+            solar_pv   = calculate_monthly_averages(results["solar_pv_gen"])[m],
+            wind       = calculate_monthly_averages(results["wind_gen"])[m],
+            nuclear    = calculate_monthly_averages(results["nuclear_gen"])[m],
+            conv_hydro = calculate_monthly_averages(results["conventional_hydro_gen"])[m],
+            ccgt       = calculate_monthly_averages(results["combined_cycle_gen"])[m],
+            cogen      = calculate_monthly_averages(results["cogeneration_gen"])[m],
+            total_gen  = calculate_monthly_averages(results["total_generation"])[m],
+            ren_gen    = calculate_monthly_averages(results["renewable_gen"])[m],
+            non_ren_gen = calculate_monthly_averages(results["non_renewable_gen"])[m],
+            batt_in    = calculate_monthly_averages(results["battery_charge"])[m],
+            batt_out   = calculate_monthly_averages(results["battery_out"])[m],
+            ph_in      = calculate_monthly_averages(results["pumped_hydro_pumping"])[m],
+            ph_out     = calculate_monthly_averages(results["pumped_hydro_out"])[m],
+            ren_share  = calculate_monthly_averages(results["share_renewable_gen"])[m],
+            lc_share   = calculate_monthly_averages(results["share_low_carbon_gen"])[m],
+            emissions  = calculate_monthly_averages(results["direct_emissions"])[m]
         ))
     end
 

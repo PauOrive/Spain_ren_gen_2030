@@ -24,10 +24,16 @@ include(joinpath(project_root, "scripts", "auxiliary_functions.jl"))
 historical_data        = CSV.read(joinpath(project_root, "data", "historical_data.csv"), DataFrame)
 technology_data        = CSV.read(joinpath(project_root, "data", "technology_data.csv"), DataFrame)
 projection_deltas_data = CSV.read(joinpath(project_root, "data", "projection_deltas_data.csv"), DataFrame)
+technical_params_df    = CSV.read(joinpath(project_root, "data", "technical_params.csv"), DataFrame)
+
+technical_params = NamedTuple(
+    Symbol(col) => technical_params_df[1, col]
+    for col in names(technical_params_df)
+)
 
 # define the scenarios
 
-scenarios = DataFrame(
+scenario = DataFrame(
     scenario_name       = ["baseline", "nuclear",  "optimistic", "climate change"],
     elas_anomaly        = [1.0,        1.0,         2.0,          1.0],
     hydro_anomaly       = [1.0,        1.0,         1.0,          0.8],
@@ -38,10 +44,10 @@ scenarios = DataFrame(
     ren_cap_multiplier  = [1.0,        0.75,        1.25,         1.0]
 )
 
-scenario_names = scenarios.scenario_name
+scenario_names = scenario.scenario_name
 
 scenario_dict = Dict(
-    scen => NamedTuple(scenarios[i, :])
+    scen => NamedTuple(scenario[i, :])
     for (i, scen) in enumerate(scenario_names)
 )
 
@@ -99,7 +105,7 @@ for scen in scenario_names
             )
 
         # 3. Apply deltas to the sampled data
-        apply_deltas!(sampled_window_data, delta_draws_iter)
+        apply_deltas!(sampled_window_data, delta_draws_iter, scenario_params)
 
         # 4. Compute iteration-specific parameters
         iteration_params = compute_iteration_params(
