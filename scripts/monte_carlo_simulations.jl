@@ -33,15 +33,15 @@ technical_params = NamedTuple(
 
 # define the scenarios
 
-scenario = DataFrame(
-    scenario_name       = ["baseline", "nuclear",  "optimistic", "climate change"],
-    elas_anomaly        = [1.0,        1.0,         2.0,          1.0],
-    hydro_anomaly       = [1.0,        1.0,         1.0,          0.8],
-    coal_phase_out      = [true,       true,        true,         true],
-    nuclear_phase_out   = [true,       false,       true,         true],
-    climate_demand      = [false,      false,       false,        true],
-    batt_cap_multiplier = [1.0,        0.5,         1.5,          1.0],
-    ren_cap_multiplier  = [1.0,        0.75,        1.25,         1.0]
+scenarios = DataFrame(
+    scenario_name         = ["baseline", "nuclear", "optimistic", "climate change", "no batteries"],
+    elas_anomaly          = [1.0,        1.0,        2.0,          1.0,              1.0],
+    hydro_anomaly         = [1.0,        1.0,        1.0,          0.8,              1.0],
+    coal_phase_out        = [true,       true,       true,         true,             true],
+    nuclear_phase_out     = [true,       false,      true,         true,             true],
+    climate_demand        = [false,      false,      false,        true,             false],
+    batt_cap_multiplier   = [1.0,        0.5,        1.5,          1.0,              0.0],
+    ren_cap_multiplier    = [1.0,        0.75,       1.25,         1.0,              1.0]
 )
 
 scenario_names = scenario.scenario_name
@@ -52,7 +52,7 @@ scenario_dict = Dict(
 )
 
 # define monte carlo parameters
-baseline_years = [2023, 2024]
+baseline_years = [2020, 2021, 2022, 2023, 2024]
 variables_to_draw = [
     "residential_demand_gwh", "commercial_demand_gwh", "industrial_demand_gwh", 
     "coal_cap_gw", "combined_cycle_cap_gw", "gas_turbine_cap_gw", "vapor_turbine_cap_gw", "cogeneration_cap_gw", "diesel_cap_gw", 
