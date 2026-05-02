@@ -20,7 +20,7 @@
 # This process ensures more variability on our moulds, so more robustness of results.
 # This function creates the mentioned "mould" from historical data, which we call sampled_window_data.
 
-function sample_time_window_real(
+function sample_time_window(
     historical_data::DataFrame,
     baseline_years::Vector{Int}
     )
@@ -37,33 +37,6 @@ function sample_time_window_real(
 
     return sampled_window_data, year, day_start
 end
-
-# defino temporalmente esta función que salta el día 14 para 2024
-function sample_time_window(
-    historical_data::DataFrame,
-    baseline_years::Vector{Int}
-    )
-
-    year = rand(baseline_years)
-    day_start = rand(1:21)
-
-    # Si la ventana incluye el día 14 de 2024, saltar ese día
-    days = collect(day_start:day_start+6)
-    if year == 2024 && 14 in days
-        days = filter(d -> d != 14, days)
-        push!(days, day_start + 7)  # reemplazar con el día siguiente
-        sort!(days)
-    end
-
-    sampled_window_data = filter(row ->
-        row.year == year &&
-        row.day in days,
-        historical_data
-    )
-
-    return sampled_window_data, year, day_start
-end
-
 
 
 # ===== 2. Auxiliary function to pre-process the projection data =====
