@@ -53,12 +53,25 @@ scenario_dict = Dict(
 
 # define monte carlo parameters
 baseline_years = [2020, 2021, 2022, 2023, 2024]
+
+# variables which will be scaled by the deltas drawn in each iteration, 
 variables_to_draw = [
     "residential_demand_gwh", "commercial_demand_gwh", "industrial_demand_gwh", 
     "coal_cap_gw", "combined_cycle_cap_gw", "gas_turbine_cap_gw", "vapor_turbine_cap_gw", "cogeneration_cap_gw", "diesel_cap_gw", 
     "nonrenewable_waste_cap_gw", "nuclear_cap_gw", "conventional_hydro_cap_gw", "run_of_river_hydro_cap_gw", "pumped_hydro_turb_cap_gw", 
     "solar_pv_cap_gw", "solar_thermal_cap_gw", "wind_cap_gw", "other_renewable_cap_gw", "renewable_waste_cap_gw", "batteries_cap_gw",
     "cost_coal_eur_gwh", "cost_gas_eur_gwh", "cost_diesel_eur_gwh", "cost_uranium_eur_gwh", "eu_ets_price_eur_tco2",
+]
+
+# define variables for which we want to compute hourly and monthly profiles 
+profile_vars = [
+    "price", 
+    "combined_cycle_gen", "cogeneration_gen", "nuclear_gen",
+    "conventional_hydro_gen", "solar_pv_gen", "wind_gen",
+    "total_generation", "renewable_gen", "non_renewable_gen",
+    "battery_charge", "battery_out", "pumped_hydro_pumping", "pumped_hydro_out", 
+    "share_renewable_gen", "share_low_carbon_gen",
+    "direct_emissions"
 ]
 
 # run build_deltas_dictionary once to create the dictionary
@@ -68,7 +81,7 @@ deltas_dictionary = build_deltas_dictionary(projection_deltas_data, variables_to
 
 # ===== Monte Carlo Simulation Loop =====
 
-num_iterations = 100
+num_iterations = 200
 
 # define containers of results
 main_results      = Dict{String, Vector{NamedTuple}}()   
