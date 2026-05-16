@@ -2,15 +2,14 @@
 
 # In particular, defines the following functions:
 
-# 1. sample_time_window to select the 7-day window and baseline year of the dataset to be projected
+# 1. sample_time_window to select (a) the 7-day window and baseline year or (b) only baseline year of the dataset to be projected
 # 2. build_deltas_dictionary to create a dictionary of the projection estimates and weights to each variable (run once)
 # 3. sampling_procedure defines the sampling procedure for the projection  stimates
 # 4. sample_deltas applies the sampling procedure to get a dictionary of draws for each iteration
 # 5. apply_deltas! projects the sampled_window_data to 2030 by applying the delta draws
 # 6. compute_iteration_params to define some parameters specific to each iteration hat are passed to the model
-# 7. calculate_hourly_averages computes averages to retrieve hourly profiles of a selection of variables
-# 8. calculate_monthly_averages computes averages to retrieve monthly profiles of a selection of variables
-# 9. store_results! stores all the results from each iteration into different pre-defined containers
+# 7. calculate_period_averages computes averages to retrieve hourly or monthly profiles of a selection of variables
+# 8. store_results! stores all the results from each iteration into different pre-defined containers
 
 
 
@@ -20,22 +19,39 @@
 # This process ensures more variability on our moulds, so more robustness of results.
 # This function creates the mentioned "mould" from historical data, which we call sampled_window_data.
 
+# ===== 1. A) Sample 7-day x 12 months time window for a baseline year =====
+
 function sample_time_window(
     historical_data::DataFrame,
     baseline_years::Vector{Int}
     )
 
     year = rand(baseline_years)
-    # day_start = rand(1:21)
+    day_start = rand(1:21)
 
     sampled_window_data = filter(row ->
-        row.year == year # &&
-        # row.day >= day_start &&
-        #row.day < day_start + 7,
+        row.year == year &&
+        row.day >= day_start &&
+        row.day < day_start + 7,
         historical_data
     )
 
-    return sampled_window_data, year, 1 #day_start
+    return sampled_window_data, year, day_start
+end
+
+# ===== 1. B) Sample a baseline year only =====
+# Alternative function to solve the model for an entire year instead of a 7-day window.
+
+function sample_baseline_year(
+    historical_data::DataFrame,
+    baseline_years::Vector{Int}
+    )
+
+    year = rand(baseline_years)
+
+    sampled_window_data = filter(row -> row.year == year, historical_data)
+
+    return sampled_window_data, year, 1
 end
 
 
@@ -48,24 +64,20 @@ end
 
 function build_deltas_dictionary(
     projection_deltas::DataFrame,
-    variables_to_draw::Vector{String}
+    variables_to_draw::Vector{String},
+    year::Int
     )
     
+    delta_col = Symbol("delta_wrt_$(year)")
     deltas_dictionary = Dict{String, Tuple{Vector{Float64}, Weights}}()
 
     for var in variables_to_draw
         subset = projection_deltas[projection_deltas.variable .== var, :]
-        deltas_dictionary[var] = (subset.delta, Weights(subset.weight))
+        deltas_dictionary[var] = (Float64.(subset[!, delta_col]), Weights(subset.weight))
     end
     
     return deltas_dictionary 
 end
-
-
-# The deltas_dictionary will be of the form: 
-# "variable_name1" => ([v1_delta_1, v1_delta_2], Weights([v1_weight_1, v1_weight_2])),  
-# "variable_name2" => ([v2_delta_1, v2_delta_2, v2_delta_3], Weights([v3_weight_1, v2_weight_2, v2_weight_3])), 
-# ... 
 
 
 
@@ -82,12 +94,17 @@ function sampling_procedure(
 
     # Define general parameters for the variables we are projecting
     mu = mean(deltas)
-    sigma = std(deltas)
+    sigma = length(deltas) == 1 ? 0.0 : std(deltas)
 
     # For those that we do not have information, we use a small standard deviation 
     if mu == 0 && sigma == 0
         std_dev = 0.05
         return rand(Normal(0.0, std_dev))
+    end
+
+    # For those that we have info but 0 spread, we treat them as deterministic (coal phase out)
+    if mu != 0 && sigma == 0
+        return mu
     end
 
     # For those that have small spread, we sample from a normal distribution
@@ -171,13 +188,16 @@ function sample_deltas(
     # we don't have projections for PH pump capacity, but estimate a relation with PH turbination capacity
     delta_draws["pumped_hydro_pump_cap_gw"] = 0.7 * delta_draws["pumped_hydro_turb_cap_gw"]
 
+    # Expand total demand delta to the 3 sectorial demands
+    demand_delta = delta_draws["total_national_demand_gwh"]
+    delta_draws["residential_demand_gwh"] = demand_delta
+    delta_draws["commercial_demand_gwh"]  = demand_delta
+    delta_draws["industrial_demand_gwh"]  = demand_delta
+    delete!(delta_draws, "total_national_demand_gwh")  
+
     return delta_draws
 end
 
-# The delta_draws dictionary will be of the form: 
-# "variable_name1" => v1_delta_draw,  
-# "variable_name2" => v2_delta_draw, 
-# ... 
 
 
 # ===== 5. Auxiliary function to project the "mould" dataset to 2030  =====
@@ -318,7 +338,7 @@ function calculate_period_averages(
 end
 
 
-# ===== 7. Auxiliary function to store results of each iteration =====
+# ===== 8. Auxiliary function to store results of each iteration =====
 # This function defines how we store all the results in the loop 
 
 function store_results!(;
@@ -362,10 +382,10 @@ function store_results!(;
         total_demand       = sum(results["total_demand"])       * annual_factor,
         
         # Total welfare
-        consumer_surplus = sum(results["consumer_surplus"]) * annual_factor,
-        producer_surplus = sum(results["producer_surplus"]) * annual_factor,
-        total_cost       = sum(results["total_cost"])       * annual_factor,
-        net_welfare      = sum(results["net_welfare"])      * annual_factor,
+        consumer_surplus = results["consumer_surplus"] * annual_factor,
+        producer_surplus = results["producer_surplus"] * annual_factor,
+        total_cost       = results["total_cost"]       * annual_factor,
+        net_welfare      = results["net_welfare"]      * annual_factor,
 
         # Total generation by technology
         coal_gen                = sum(results["coal_gen"])                * annual_factor,

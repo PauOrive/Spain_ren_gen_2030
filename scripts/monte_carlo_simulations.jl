@@ -44,10 +44,10 @@ scenarios = DataFrame(
     ren_cap_multiplier    = [1.0,        0.75,       1.25,         1.0,              1.0]
 )
 
-scenario_names = scenario.scenario_name
+scenario_names = scenarios.scenario_name
 
 scenario_dict = Dict(
-    scen => NamedTuple(scenario[i, :])
+    scen => NamedTuple(scenarios[i, :])
     for (i, scen) in enumerate(scenario_names)
 )
 
@@ -56,7 +56,7 @@ baseline_years = [2020, 2021, 2022, 2023, 2024]
 
 # variables which will be scaled by the deltas drawn in each iteration, 
 variables_to_draw = [
-    "residential_demand_gwh", "commercial_demand_gwh", "industrial_demand_gwh", 
+    "total_national_demand_gwh",  # same delta will be applied to each sectoral demand
     "coal_cap_gw", "combined_cycle_cap_gw", "gas_turbine_cap_gw", "vapor_turbine_cap_gw", "cogeneration_cap_gw", "diesel_cap_gw", 
     "nonrenewable_waste_cap_gw", "nuclear_cap_gw", "conventional_hydro_cap_gw", "run_of_river_hydro_cap_gw", "pumped_hydro_turb_cap_gw", 
     "solar_pv_cap_gw", "solar_thermal_cap_gw", "wind_cap_gw", "other_renewable_cap_gw", "renewable_waste_cap_gw", "batteries_cap_gw",
@@ -66,22 +66,22 @@ variables_to_draw = [
 # define variables for which we want to compute hourly and monthly profiles 
 profile_vars = [
     "price", 
-    "combined_cycle_gen", "cogeneration_gen", "nuclear_gen",
-    "conventional_hydro_gen", "solar_pv_gen", "wind_gen",
-    "total_generation", "renewable_gen", "non_renewable_gen",
+    "combined_cycle_gen", "cogeneration_gen", "nuclear_gen", "conventional_hydro_gen", "solar_pv_gen", "wind_gen",
+    "total_generation", "renewable_gen", "non_renewable_gen", "share_renewable_gen", "share_low_carbon_gen",
     "battery_charge", "battery_out", "pumped_hydro_pumping", "pumped_hydro_out", 
-    "share_renewable_gen", "share_low_carbon_gen",
     "direct_emissions"
 ]
 
 # run build_deltas_dictionary once to create the dictionary
-deltas_dictionary = build_deltas_dictionary(projection_deltas_data, variables_to_draw)
-
+deltas_dictionary = Dict(
+    year => build_deltas_dictionary(projection_deltas_data, variables_to_draw, year)
+    for year in baseline_years
+)
 
 
 # ===== Monte Carlo Simulation Loop =====
 
-num_iterations = 200
+num_iterations = 100
 
 # define containers of results
 main_results      = Dict{String, Vector{NamedTuple}}()   
@@ -105,16 +105,20 @@ for scen in scenario_names
 
     for iter in 1:num_iterations
 
-        @printf("Scenario %s, iteration %d of %d\n", scen, iter, num_iterations)
+        @printf("\nScenario %s, iteration %d of %d\n", scen, iter, num_iterations)
 
         # 1. Sample time window from historical data
         sampled_window_data, year, day_start = sample_time_window(historical_data, baseline_years)
+        @printf("Solving for baseline year %d with start day %d\n", year, day_start)
+
+        # in case we solve for the entire year, we leave day_start, fixed to 1 to avoid changing too many things downstream.
+        # sampled_window_data, year, day_start = sample_baseline_year(historical_data, baseline_years)
 
         # 2. Sample deltas for this iteration
         delta_draws_iter = sample_deltas(
-            variables_to_draw,      # vector of variables to be scaled
-            deltas_dictionary,      # dictionary with projection deltas per variable to draw
-            scenario_params,        # scenario-specific parameters with specific rules to modify some of the delta draws
+            variables_to_draw,       # vector of variables to be scaled
+            deltas_dictionary[year], # dictionary with projection deltas per variable to draw
+            scenario_params,         # scenario-specific parameters with specific rules to modify some of the delta draws
             )
 
         # 3. Apply deltas to the sampled data
