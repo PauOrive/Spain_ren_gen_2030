@@ -1,0 +1,69 @@
+variable,value_estimate,source,type_estimate,weight,link,section_page
+total_national_demand_gwh,274000,PNIEC,lower bound,0.5,https://www.miteco.gob.es/content/dam/miteco/es/energia/files-1/pniec-2023-2030/PNIEC_2024_240924.pdf,page 514
+total_national_demand_gwh,295000,McKinsey,lower bound,0.5,https://www.mckinsey.com/industries/electric-power-and-natural-gas/our-insights/the-iberian-green-industrial-opportunity-electrification-and-renewables?utm_source=chatgpt.com,Exhibit 1
+total_national_demand_gwh,280000,Enerjoin,central,1,https://www.pv-magazine.com/2023/06/29/spain-targeting-56-gw-of-new-solar-by-2030-under-new-energy-strategy/,They say is impossible to reach demand as PNIEC plans to do
+total_national_demand_gwh,294000,Aurora Energy Research,central,1,"https://auroraer.com/media/green-hydrogen-becomes-key-to-spains-ambitious-decarbonisation-amid-structural-and-regulatory-challenges/#:~:text=By%202030%2C%20electricity%20demand%20in,coming%20from%20green%20hydrogen%20production.",1st paragraph
+total_national_demand_gwh,286500,Electricity Optimization,central-old,0.2,http://mixspain.psa.es/optimization/year%202030/year%202040/year%202050/optimization_60_75_90/,NA
+coal_cap_gw,0,PNIEC,central,1,https://www.miteco.gob.es/content/dam/miteco/es/energia/files-1/pniec-2023-2030/PNIEC_2024_240924.pdf,Page 631
+coal_cap_gw,0,Aurora Energy Research,central,1,Aurora report 2025,page 187
+coal_cap_gw,0,UNFCC,central,1,https://unfccc.int/news/end-of-coal-in-sight-at-cop26,page 16
+coal_cap_gw,0,Red Eléctrica,central,1,https://www.ree.es/sites/default/files/14_OPERACION/Documentos/Red_Electrica_SpanishPeninsularPowerSystem_NRAA_23_v3.pdf,Page 35
+combined_cycle_cap_gw,24.5,PNIEC,central,1,https://www.miteco.gob.es/content/dam/miteco/es/energia/files-1/pniec-2023-2030/PNIEC_2024_240924.pdf,Page 631
+combined_cycle_cap_gw,25,Aurora Energy Research,central,1,Aurora report 2025,page 187
+combined_cycle_cap_gw,24.5,Red Eléctrica,central,1,https://www.ree.es/sites/default/files/14_OPERACION/Documentos/Red_Electrica_SpanishPeninsularPowerSystem_NRAA_23_v3.pdf,Page 35
+gas_turbine_cap_gw,NA,NA,none,1,NA,NA
+vapor_turbine_cap_gw,NA,NA,none,1,NA,NA
+cogeneration_cap_gw,4.205,PNIEC,central,1,https://www.miteco.gob.es/content/dam/miteco/es/energia/files-1/pniec-2023-2030/PNIEC_2024_240924.pdf,Page 631
+cogeneration_cap_gw,4.3,Aurora Energy Research,central,1,Aurora report 2025,Page 117
+diesel_cap_gw,NA,NA,none,1,NA,NA
+nonrenewable_waste_cap_gw,NA,NA,none,1,NA,NA
+nuclear_cap_gw,3.041,PNIEC,central,1,https://www.miteco.gob.es/content/dam/miteco/es/energia/files-1/pniec-2023-2030/PNIEC_2024_240924.pdf,Page 631
+nuclear_cap_gw,4,Aurora Energy Research,central,1,Aurora report 2025,Page 187
+nuclear_cap_gw,4.117,Year Nucnet,central,1,https://www.nucnet.org/news/nuclear-plants-should-operate-for-20-more-years-says-industry-group-3-1-2023,NA
+nuclear_cap_gw,3.04,Red Eléctrica,central,1,https://www.ree.es/sites/default/files/14_OPERACION/Documentos/Red_Electrica_SpanishPeninsularPowerSystem_NRAA_23_v3.pdf,Page 35
+conventional_hydro_cap_gw,14.562,PNIEC,central,1,https://www.miteco.gob.es/content/dam/miteco/es/energia/files-1/pniec-2023-2030/PNIEC_2024_240924.pdf,Page 631
+conventional_hydro_cap_gw,15.7,Aurora Energy Research,central,1,Aurora report 2025,Page 62
+conventional_hydro_cap_gw,15.655,Red Eléctrica,central,1,https://www.ree.es/sites/default/files/14_OPERACION/Documentos/Red_Electrica_SpanishPeninsularPowerSystem_NRAA_23_v3.pdf,Page 35
+run_of_river_hydro_cap_gw,NA,NA,none,1,NA,NA
+pumped_hydro_turb_cap_gw,4,PNIEC,central,1,https://www.miteco.gob.es/content/dam/miteco/es/energia/files-1/pniec-2023-2030/PNIEC_2024_240924.pdf,Page 631
+pumped_hydro_turb_cap_gw,6.4,Aurora Energy Research,central,1,Aurora report 2025,Page 62
+pumped_hydro_turb_cap_gw,6.9,Red Eléctrica,central,1,https://www.ree.es/sites/default/files/14_OPERACION/Documentos/Red_Electrica_SpanishPeninsularPowerSystem_NRAA_23_v3.pdf,Page 35
+solar_pv_cap_gw,72.13,PNIEC,central,1,https://www.miteco.gob.es/content/dam/miteco/es/energia/files-1/pniec-2023-2030/PNIEC_2024_240924.pdf,Page 631
+solar_pv_cap_gw,33.2,Electricity Optimization,central-old,0.2,http://mixspain.psa.es/optimization/year%202030/year%202040/year%202050/optimization_60_75_90/,NA
+solar_pv_cap_gw,56,Aurora Energy Research,upper bound,0.5,Aurora report 2025,page 187
+solar_pv_cap_gw,45,Aurora Energy Research,lower bound,0.5,Aurora report 2025,page 188
+solar_pv_cap_gw,38.404,Red Eléctrica,central,1,https://www.ree.es/sites/default/files/14_OPERACION/Documentos/Red_Electrica_SpanishPeninsularPowerSystem_NRAA_23_v3.pdf,Page 35
+solar_thermal_cap_gw,4.8,PNIEC,central,1,https://www.miteco.gob.es/content/dam/miteco/es/energia/files-1/pniec-2023-2030/PNIEC_2024_240924.pdf,Page 627
+solar_thermal_cap_gw,2,Aurora Energy Research,central,1,Aurora report 2025,page 16
+solar_thermal_cap_gw,7.3,Red Eléctrica,central,1,https://www.ree.es/sites/default/files/14_OPERACION/Documentos/Red_Electrica_SpanishPeninsularPowerSystem_NRAA_23_v3.pdf,Page 35
+wind_cap_gw,60.537,PNIEC,central,1,https://www.miteco.gob.es/content/dam/miteco/es/energia/files-1/pniec-2023-2030/PNIEC_2024_240924.pdf,Page 631
+wind_cap_gw,50,Aurora Energy Research,upper bound,0.5,Aurora report 2025,page 187
+wind_cap_gw,47.55,Electricity Optimization,lower bound,0.5,http://mixspain.psa.es/optimization/year%202030/year%202040/year%202050/optimization_60_75_90/,NA
+wind_cap_gw,37,Aurora Energy Research,central-old,0.2,Aurora report 2025,page 188
+wind_cap_gw,48.55,Red Eléctrica,central,1,https://www.ree.es/sites/default/files/14_OPERACION/Documentos/Red_Electrica_SpanishPeninsularPowerSystem_NRAA_23_v3.pdf,Page 35
+other_renewable_cap_gw,1.694,PNIEC,central,1,https://www.miteco.gob.es/content/dam/miteco/es/energia/files-1/pniec-2023-2030/PNIEC_2024_240924.pdf,Page 631
+other_renewable_cap_gw,2,Aurora Energy Research,central,1,Aurora report 2025,page 187
+other_renewable_cap_gw,1.73,Red Eléctrica,central,1,https://www.ree.es/sites/default/files/14_OPERACION/Documentos/Red_Electrica_SpanishPeninsularPowerSystem_NRAA_23_v3.pdf,Page 35
+renewable_waste_cap_gw,NA,NA,none,1,NA,NA
+batteries_cap_gw,2.5,Red Eléctrica,central,1,https://www.ree.es/sites/default/files/14_OPERACION/Documentos/Red_Electrica_SpanishPeninsularPowerSystem_NRAA_23_v3.pdf,Page 35
+batteries_cap_gw,9.4,PNIEC,central,1,https://www.miteco.gob.es/content/dam/miteco/es/energia/files-1/pniec-2023-2030/PNIEC_2024_240924.pdf,Page 631
+batteries_cap_gw,6.6,Aurora Energy Research,central,1,Aurora report 2025,NA
+cost_coal_eur_gwh,15130,Heat roadmap EU,central,0.5,https://heatroadmap.eu/wp-content/uploads/2020/01/HRE4_D6.1-Future-fuel-price-review.pdf,page 13
+cost_coal_eur_gwh,21210,Heat roadmap EU,upper bound,0.2,https://heatroadmap.eu/wp-content/uploads/2020/01/HRE4_D6.1-Future-fuel-price-review.pdf,page 13
+cost_coal_eur_gwh,11050,Heat roadmap EU,lower bound,0.2,https://heatroadmap.eu/wp-content/uploads/2020/01/HRE4_D6.1-Future-fuel-price-review.pdf,page 13
+cost_gas_eur_gwh,30000,Aurora Energy Research,central,1,Aurora report 2025,page 98
+cost_gas_eur_gwh,46000,Aurora Energy Research,upper bound,0.5,Aurora report 2025,page 98
+cost_gas_eur_gwh,20000,Aurora Energy Research,lower bound,0.5,Aurora report 2025,page 98
+cost_gas_eur_gwh,35550,Heat roadmap EU,central,0.5,https://heatroadmap.eu/wp-content/uploads/2020/01/HRE4_D6.1-Future-fuel-price-review.pdf,page 13
+cost_gas_eur_gwh,47110,Heat roadmap EU,upper bound,0.2,https://heatroadmap.eu/wp-content/uploads/2020/01/HRE4_D6.1-Future-fuel-price-review.pdf,page 13
+cost_gas_eur_gwh,23620,Heat roadmap EU,lower bound,0.2,https://heatroadmap.eu/wp-content/uploads/2020/01/HRE4_D6.1-Future-fuel-price-review.pdf,page 13
+cost_gas_eur_gwh,36600,Heat roadmap EU,specific scenario,0.5,https://iea.blob.core.windows.net/assets/89a1aa9a-e1bd-4803-b37b-59d6e7fba1e9/GlobalEnergyandClimateModelDocumentation2024.pdf,page 21
+cost_gas_eur_gwh,29000,Heat roadmap EU,specific scenario,0.5,https://iea.blob.core.windows.net/assets/89a1aa9a-e1bd-4803-b37b-59d6e7fba1e9/GlobalEnergyandClimateModelDocumentation2024.pdf,page 21
+cost_gas_eur_gwh,24600,Heat roadmap EU,specific scenario,0.5,https://iea.blob.core.windows.net/assets/89a1aa9a-e1bd-4803-b37b-59d6e7fba1e9/GlobalEnergyandClimateModelDocumentation2024.pdf,page 21
+cost_diesel_eur_gwh,49150,Heat roadmap EU,central,0.5,https://heatroadmap.eu/wp-content/uploads/2020/01/HRE4_D6.1-Future-fuel-price-review.pdf,page 13
+cost_diesel_eur_gwh,62290,Heat roadmap EU,upper bound,0.2,https://heatroadmap.eu/wp-content/uploads/2020/01/HRE4_D6.1-Future-fuel-price-review.pdf,page 13
+cost_diesel_eur_gwh,42460,Heat roadmap EU,lower bound,0.2,https://heatroadmap.eu/wp-content/uploads/2020/01/HRE4_D6.1-Future-fuel-price-review.pdf,page 13
+cost_uranium_eur_gwh,NA,NA,none,1,NA,NA
+eu_ets_price_eur_tco2,146,Bloomberg,central,1,"https://www.homaio.com/post/what-are-the-eua-price-forecasts-for-2030#:~:text=All%20experts%20agree%20on%20an,average%2C%20experts%20believe%20carbon%20prices",See the graph and comments
+eu_ets_price_eur_tco2,135,Morgan stanley,central,1,"https://www.homaio.com/post/what-are-the-eua-price-forecasts-for-2030#:~:text=All%20experts%20agree%20on%20an,average%2C%20experts%20believe%20carbon%20prices",See the graph and comments
+eu_ets_price_eur_tco2,130,Aurora Energy Research,central,1,Aurora report 2025,"Eyesight, page 195"

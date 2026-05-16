@@ -1,181 +1,69 @@
-variable,year,delta,source,type_estimate,weight
-residential_demand_gwh,2023,0.12,PNIEC,lower bound,0.5
-residential_demand_gwh,2023,0.206,McKinsey,lower bound,0.5
-residential_demand_gwh,2023,0.171,Electricity Optimization,central-old,0.2
-residential_demand_gwh,2023,0.144,Enerjoin,central,1
-residential_demand_gwh,2023,0.202,Aurora Energy Research,central,1
-residential_demand_gwh,2024,0.101,PNIEC,lower bound,0.5
-residential_demand_gwh,2024,0.186,McKinsey,lower bound,0.5
-residential_demand_gwh,2024,0.151,Electricity Optimization,central-old,0.2
-residential_demand_gwh,2024,0.125,Enerjoin,central,1
-residential_demand_gwh,2024,0.182,Aurora Energy Research,central,1
-commercial_demand_gwh,2023,0.12,PNIEC,lower bound,0.5
-commercial_demand_gwh,2023,0.206,McKinsey,lower bound,0.5
-commercial_demand_gwh,2023,0.171,Electricity Optimization,central-old,0.2
-commercial_demand_gwh,2023,0.144,Enerjoin,central,1
-commercial_demand_gwh,2023,0.202,Aurora Energy Research,central,1
-commercial_demand_gwh,2024,0.101,PNIEC,lower bound,0.5
-commercial_demand_gwh,2024,0.186,McKinsey,lower bound,0.5
-commercial_demand_gwh,2024,0.151,Electricity Optimization,central-old,0.2
-commercial_demand_gwh,2024,0.125,Enerjoin,central,1
-commercial_demand_gwh,2024,0.182,Aurora Energy Research,central,1
-industrial_demand_gwh,2023,0.12,PNIEC,lower bound,0.5
-industrial_demand_gwh,2023,0.206,McKinsey,lower bound,0.5
-industrial_demand_gwh,2023,0.171,Electricity Optimization,central-old,0.2
-industrial_demand_gwh,2023,0.144,Enerjoin,central,1
-industrial_demand_gwh,2023,0.202,Aurora Energy Research,central,1
-industrial_demand_gwh,2024,0.101,PNIEC,lower bound,0.5
-industrial_demand_gwh,2024,0.186,McKinsey,lower bound,0.5
-industrial_demand_gwh,2024,0.151,Electricity Optimization,central-old,0.2
-industrial_demand_gwh,2024,0.125,Enerjoin,central,1
-industrial_demand_gwh,2024,0.182,Aurora Energy Research,central,1
-coal_cap_gw,2023,-1,PNIEC,central,1
-coal_cap_gw,2023,-1,Aurora Energy Research,central,1
-coal_cap_gw,2023,-1,UNFFC,central,1
-coal_cap_gw,2023,-1,Red Eléctrica,central,1
-coal_cap_gw,2024,-1,PNIEC,central,1
-coal_cap_gw,2024,-1,Aurora Energy Research,central,1
-coal_cap_gw,2024,-1,UNFFC,central,1
-coal_cap_gw,2024,-1,Red Eléctrica,central,1
-combined_cycle_cap_gw,2023,-0.067,PNIEC,central,1
-combined_cycle_cap_gw,2023,-0.048,Aurora Energy Research,central,1
-combined_cycle_cap_gw,2023,-0.067,Red Eléctrica,central,1
-combined_cycle_cap_gw,2024,-0.067,PNIEC,central,1
-combined_cycle_cap_gw,2024,-0.048,Aurora Energy Research,central,1
-combined_cycle_cap_gw,2024,-0.067,Red Eléctrica,central,1
-gas_turbine_cap_gw,2023,0,none,none,1
-gas_turbine_cap_gw,2024,0,none,none,1
-vapor_turbine_cap_gw,2023,0,none,none,1
-vapor_turbine_cap_gw,2024,0,none,none,1
-cogeneration_cap_gw,2023,-0.251,PNIEC,central,1
-cogeneration_cap_gw,2023,-0.234,Aurora Energy Research,central,1
-cogeneration_cap_gw,2024,-0.249,PNIEC,central,1
-cogeneration_cap_gw,2024,-0.232,Aurora Energy Research,central,1
-diesel_cap_gw,2023,0,none,none,1
-diesel_cap_gw,2024,0,none,none,1
-nonrenewable_waste_cap_gw,2023,0,none,none,1
-nonrenewable_waste_cap_gw,2024,0,none,none,1
-nuclear_cap_gw,2023,-0.573,PNIEC,central,1
-nuclear_cap_gw,2023,-0.438,Aurora Energy Research,central,1
-nuclear_cap_gw,2023,-0.422,Nucnet,central,1
-nuclear_cap_gw,2023,-0.573,Red Eléctrica,central,1
-nuclear_cap_gw,2024,-0.573,PNIEC,central,1
-nuclear_cap_gw,2024,-0.438,Aurora Energy Research,central,1
-nuclear_cap_gw,2024,-0.422,Nucnet,central,1
-nuclear_cap_gw,2024,-0.573,Red Eléctrica,central,1
-conventional_hydro_cap_gw,2023,0.066,PNIEC,central,1
-conventional_hydro_cap_gw,2023,-0.008,Aurora Energy Research,central,1
-conventional_hydro_cap_gw,2023,0,Red Eléctrica,central,1
-conventional_hydro_cap_gw,2024,0.066,PNIEC,central,1
-conventional_hydro_cap_gw,2024,-0.008,Aurora Energy Research,central,1
-conventional_hydro_cap_gw,2024,0,Red Eléctrica,central,1
-run_of_river_hydro_cap_gw,2023,0.039,Red Eléctrica,central,1
-run_of_river_hydro_cap_gw,2024,0.039,Red Eléctrica,central,1
-pumped_hydro_turb_cap_gw,2023,0.201,PNIEC,central,1
-pumped_hydro_turb_cap_gw,2023,0.921,Aurora Energy Research,central,1
-pumped_hydro_turb_cap_gw,2023,1.071,Red Eléctrica,central,1
-pumped_hydro_turb_cap_gw,2024,0.201,PNIEC,central,1
-pumped_hydro_turb_cap_gw,2024,0.921,Aurora Energy Research,central,1
-pumped_hydro_turb_cap_gw,2024,1.071,Red Eléctrica,central,1
-solar_pv_cap_gw,2023,2.029,PNIEC,central,1
-solar_pv_cap_gw,2023,0.394,Electricity Optimization,central-old,0.2
-solar_pv_cap_gw,2023,1.352,Aurora Energy Research,upper bound,0.5
-solar_pv_cap_gw,2023,0.89,Aurora Energy Research,lower bound,0.5
-solar_pv_cap_gw,2023,0.613,Red Eléctrica,central,1
-solar_pv_cap_gw,2024,1.437,PNIEC,central,1
-solar_pv_cap_gw,2024,0.122,Electricity Optimization,central-old,0.2
-solar_pv_cap_gw,2024,0.892,Aurora Energy Research,upper bound,0.5
-solar_pv_cap_gw,2024,0.52,Aurora Energy Research,lower bound,0.5
-solar_pv_cap_gw,2024,0.297,Red Eléctrica,central,1
-solar_thermal_cap_gw,2023,1.085,PNIEC,central,1
-solar_thermal_cap_gw,2023,-0.131,Aurora Energy Research,central,1
-solar_thermal_cap_gw,2023,2.171,Red Eléctrica,central,1
-solar_thermal_cap_gw,2024,1.085,PNIEC,central,1
-solar_thermal_cap_gw,2024,-0.131,Aurora Energy Research,central,1
-solar_thermal_cap_gw,2024,2.171,Red Eléctrica,central,1
-wind_cap_gw,2023,0.98,PNIEC,central,1
-wind_cap_gw,2023,0.635,Aurora Energy Research,upper bound,0.5
-wind_cap_gw,2023,0.555,Aurora Energy Research,lower bound,0.5
-wind_cap_gw,2023,0.21,Electricity Optimization,central-old,0.2
-wind_cap_gw,2023,0.588,Red Eléctrica,central,1
-wind_cap_gw,2024,0.919,PNIEC,central,1
-wind_cap_gw,2024,0.585,Aurora Energy Research,upper bound,0.5
-wind_cap_gw,2024,0.507,Aurora Energy Research,lower bound,0.5
-wind_cap_gw,2024,0.173,Electricity Optimization,central-old,0.2
-wind_cap_gw,2024,0.539,Red Eléctrica,central,1
-other_renewable_cap_gw,2023,0.531,PNIEC,central,1
-other_renewable_cap_gw,2023,0.807,Aurora Energy Research,central,1
-other_renewable_cap_gw,2023,0.563,Red Eléctrica,central,1
-other_renewable_cap_gw,2024,0.528,PNIEC,central,1
-other_renewable_cap_gw,2024,0.804,Aurora Energy Research,central,1
-other_renewable_cap_gw,2024,0.56,Red Eléctrica,central,1
-renewable_waste_cap_gw,2023,0,none,none,1
-renewable_waste_cap_gw,2024,0,none,none,1
-batteries_cap_gw,2023,99,Red Eléctrica,central,1
-batteries_cap_gw,2023,375,PNIEC,central,1
-batteries_cap_gw,2023,263,Aurora Energy Research,centra,1
-batteries_cap_gw,2024,99,Red Eléctrica,central,1
-batteries_cap_gw,2024,375,PNIEC,central,1
-batteries_cap_gw,2024,263,Aurora Energy Research,centra,1
-cost_coal_eur_gwh,2023,-0.143,Heat roadmap EU,central,0.5
-cost_coal_eur_gwh,2023,0.202,Heat roadmap EU,upper bound,0.2
-cost_coal_eur_gwh,2023,-0.374,Heat roadmap EU,lower bound,0.2
-cost_coal_eur_gwh,2024,-0.062,Heat roadmap EU,central,0.5
-cost_coal_eur_gwh,2024,0.315,Heat roadmap EU,upper bound,0.2
-cost_coal_eur_gwh,2024,-0.315,Heat roadmap EU,lower bound,0.2
-cost_gas_eur_gwh,2023,-0.238,Aurora Energy Research,central,1
-cost_gas_eur_gwh,2023,0.168,Aurora Energy Research,upper bound,0.5
-cost_gas_eur_gwh,2023,-0.492,Aurora Energy Research,lower bound,0.5
-cost_gas_eur_gwh,2023,-0.097,Heat roadmap EU,central,0.5
-cost_gas_eur_gwh,2023,0.197,Heat roadmap EU,upper bound,0.2
-cost_gas_eur_gwh,2023,-0.4,Heat roadmap EU,lower bound,0.2
-cost_gas_eur_gwh,2023,-0.07,IEA,specific scenario,0.5
-cost_gas_eur_gwh,2023,-0.263,IEA,specific scenario,0.5
-cost_gas_eur_gwh,2023,-0.375,IEA,specific scenario,0.5
-cost_gas_eur_gwh,2024,-0.141,Aurora Energy Research,central,1
-cost_gas_eur_gwh,2024,0.318,Aurora Energy Research,upper bound,0.5
-cost_gas_eur_gwh,2024,-0.427,Aurora Energy Research,lower bound,0.5
-cost_gas_eur_gwh,2024,0.018,Heat roadmap EU,central,0.5
-cost_gas_eur_gwh,2024,0.349,Heat roadmap EU,upper bound,0.2
-cost_gas_eur_gwh,2024,-0.323,Heat roadmap EU,lower bound,0.2
-cost_gas_eur_gwh,2024,0.048,IEA,specific scenario,0.5
-cost_gas_eur_gwh,2024,-0.169,IEA,specific scenario,0.5
-cost_gas_eur_gwh,2024,-0.295,IEA,specific scenario,0.5
-cost_diesel_eur_gwh,2023,-0.467,Heat roadmap EU,central,0.5
-cost_diesel_eur_gwh,2023,-0.325,Heat roadmap EU,upper bound,0.2
-cost_diesel_eur_gwh,2023,-0.54,Heat roadmap EU,lower bound,0.2
-cost_diesel_eur_gwh,2024,-0.423,Heat roadmap EU,central,0.5
-cost_diesel_eur_gwh,2024,-0.268,Heat roadmap EU,upper bound,0.2
-cost_diesel_eur_gwh,2024,-0.501,Heat roadmap EU,lower bound,0.2
-cost_uranium_eur_gwh,2023,0,none,none,1
-cost_uranium_eur_gwh,2024,0,none,none,1
-eu_ets_price_eur_tco2,2023,0.754,Bloomberg,central,1
-eu_ets_price_eur_tco2,2023,0.622,Morgan Stanley,central,1
-eu_ets_price_eur_tco2,2023,0.562,Aurora Energy Research,central,1
-eu_ets_price_eur_tco2,2024,1.254,Bloomberg,central,1
-eu_ets_price_eur_tco2,2024,1.085,Morgan Stanley,central,1
-eu_ets_price_eur_tco2,2024,-0.11,Aurora Energy Research,central,1
-imp_fra_cap_gw,2023,0.768,PNIEC,central,1
-imp_fra_cap_gw,2023,0.768,Aurora Energy Research,central,1
-imp_fra_cap_gw,2024,0.768,PNIEC,central,1
-imp_fra_cap_gw,2024,0.768,Aurora Energy Research,central,1
-imp_por_cap_gw,2023,0.167,PNIEC,central,1
-imp_por_cap_gw,2023,0.333,Aurora Energy Research,central,1
-imp_por_cap_gw,2024,0.167,PNIEC,central,1
-imp_por_cap_gw,2024,0.333,Aurora Energy Research,central,1
-imp_mor_cap_gw,2023,0,PNIEC,central,1
-imp_mor_cap_gw,2023,0.667,Aurora Energy Research,central,1
-imp_mor_cap_gw,2024,0,PNIEC,central,1
-imp_mor_cap_gw,2024,0.667,Aurora Energy Research,central,1
-exp_fra_cap_gw,2023,0.515,PNIEC,central,1
-exp_fra_cap_gw,2023,0.515,Aurora Energy Research,central,1
-exp_fra_cap_gw,2024,0.515,PNIEC,central,1
-exp_fra_cap_gw,2024,0.515,Aurora Energy Research,central,1
-exp_por_cap_gw,2023,0.4,PNIEC,central,1
-exp_por_cap_gw,2023,0.667,Aurora Energy Research,central,1
-exp_por_cap_gw,2024,0.4,PNIEC,central,1
-exp_por_cap_gw,2024,0.667,Aurora Energy Research,central,1
-exp_mor_cap_gw,2023,0,PNIEC,central,1
-exp_mor_cap_gw,2023,0.111,Aurora Energy Research,central,1
-exp_mor_cap_gw,2024,0,PNIEC,central,1
-exp_mor_cap_gw,2024,0.111,Aurora Energy Research,central,1
+variable,hist_mean_value_2020,hist_mean_value_2021,hist_mean_value_2022,hist_mean_value_2023,hist_mean_value_2024,estimated_value_2030,source,type_estimate,weight,delta_wrt_2020,delta_wrt_2021,delta_wrt_2022,delta_wrt_2023,delta_wrt_2024
+total_national_demand_gwh,251211.207,257956.812,251174.917,244687.889,247676.078,274000,PNIEC,lower bound,0.5,0.091,0.062,0.091,0.12,0.106
+total_national_demand_gwh,251211.207,257956.812,251174.917,244687.889,247676.078,295000,McKinsey,lower bound,0.5,0.174,0.144,0.174,0.206,0.191
+total_national_demand_gwh,251211.207,257956.812,251174.917,244687.889,247676.078,280000,Enerjoin,central,1,0.115,0.085,0.115,0.144,0.131
+total_national_demand_gwh,251211.207,257956.812,251174.917,244687.889,247676.078,294000,Aurora Energy Research,central,1,0.17,0.14,0.17,0.202,0.187
+total_national_demand_gwh,251211.207,257956.812,251174.917,244687.889,247676.078,286500,Electricity Optimization,central-old,0.2,0.14,0.111,0.141,0.171,0.157
+coal_cap_gw,8.139,4.697,3.613,3.345,2.061,0,PNIEC,central,1,-1,-1,-1,-1,-1
+coal_cap_gw,8.139,4.697,3.613,3.345,2.061,0,Aurora Energy Research,central,1,-1,-1,-1,-1,-1
+coal_cap_gw,8.139,4.697,3.613,3.345,2.061,0,UNFCC,central,1,-1,-1,-1,-1,-1
+coal_cap_gw,8.139,4.697,3.613,3.345,2.061,0,Red Eléctrica,central,1,-1,-1,-1,-1,-1
+combined_cycle_cap_gw,26.25,26.25,26.25,26.25,26.25,24.5,PNIEC,central,1,-0.067,-0.067,-0.067,-0.067,-0.067
+combined_cycle_cap_gw,26.25,26.25,26.25,26.25,26.25,25,Aurora Energy Research,central,1,-0.048,-0.048,-0.048,-0.048,-0.048
+combined_cycle_cap_gw,26.25,26.25,26.25,26.25,26.25,24.5,Red Eléctrica,central,1,-0.067,-0.067,-0.067,-0.067,-0.067
+gas_turbine_cap_gw,1.149,1.149,1.149,1.149,1.149,NA,NA,none,1,0,0,0,0,0
+vapor_turbine_cap_gw,0.483,0.483,0.483,0.483,0.483,NA,NA,none,1,0,0,0,0,0
+cogeneration_cap_gw,5.693,5.653,5.632,5.626,5.599,4.205,PNIEC,central,1,-0.261,-0.256,-0.253,-0.253,-0.249
+cogeneration_cap_gw,5.693,5.653,5.632,5.626,5.599,4.3,Aurora Energy Research,central,1,-0.245,-0.239,-0.237,-0.236,-0.232
+diesel_cap_gw,0.769,0.769,0.769,0.769,0.769,NA,NA,none,1,0,0,0,0,0
+nonrenewable_waste_cap_gw,0.439,0.445,0.432,0.426,0.426,NA,NA,none,1,0,0,0,0,0
+nuclear_cap_gw,7.117,7.117,7.117,7.117,7.117,3.041,PNIEC,central,1,-0.573,-0.573,-0.573,-0.573,-0.573
+nuclear_cap_gw,7.117,7.117,7.117,7.117,7.117,4,Aurora Energy Research,central,1,-0.438,-0.438,-0.438,-0.438,-0.438
+nuclear_cap_gw,7.117,7.117,7.117,7.117,7.117,4.117,Year Nucnet,central,1,-0.422,-0.422,-0.422,-0.422,-0.422
+nuclear_cap_gw,7.117,7.117,7.117,7.117,7.117,3.04,Red Eléctrica,central,1,-0.573,-0.573,-0.573,-0.573,-0.573
+conventional_hydro_cap_gw,15.771,15.771,15.771,15.771,15.771,14.562,PNIEC,central,1,-0.077,-0.077,-0.077,-0.077,-0.077
+conventional_hydro_cap_gw,15.771,15.771,15.771,15.771,15.771,15.7,Aurora Energy Research,central,1,-0.005,-0.005,-0.005,-0.005,-0.005
+conventional_hydro_cap_gw,15.771,15.771,15.771,15.771,15.771,15.655,Red Eléctrica,central,1,-0.007,-0.007,-0.007,-0.007,-0.007
+run_of_river_hydro_cap_gw,1.155,1.155,1.155,1.155,1.155,NA,NA,none,1,0,0,0,0,0
+pumped_hydro_turb_cap_gw,3.418,3.418,3.418,3.418,3.418,4,PNIEC,central,1,0.17,0.17,0.17,0.17,0.17
+pumped_hydro_turb_cap_gw,3.418,3.418,3.418,3.418,3.418,6.4,Aurora Energy Research,central,1,0.872,0.872,0.872,0.872,0.872
+pumped_hydro_turb_cap_gw,3.418,3.418,3.418,3.418,3.418,6.9,Red Eléctrica,central,1,1.019,1.019,1.019,1.019,1.019
+solar_pv_cap_gw,10.8,14.364,19.407,26.735,35.268,72.13,PNIEC,central,1,5.679,4.022,2.717,1.698,1.045
+solar_pv_cap_gw,10.8,14.364,19.407,26.735,35.268,33.2,Electricity Optimization,central-old,0.2,2.074,1.311,0.711,0.242,-0.059
+solar_pv_cap_gw,10.8,14.364,19.407,26.735,35.268,56,Aurora Energy Research,upper bound,0.5,4.185,2.899,1.886,1.095,0.588
+solar_pv_cap_gw,10.8,14.364,19.407,26.735,35.268,45,Aurora Energy Research,lower bound,0.5,3.167,2.133,1.319,0.683,0.276
+solar_pv_cap_gw,10.8,14.364,19.407,26.735,35.268,38.404,Red Eléctrica,central,1,2.556,1.674,0.979,0.436,0.089
+solar_thermal_cap_gw,2.302,2.302,2.302,2.303,2.303,4.8,PNIEC,central,1,1.085,1.085,1.085,1.084,1.084
+solar_thermal_cap_gw,2.302,2.302,2.302,2.303,2.303,2,Aurora Energy Research,central,1,-0.131,-0.131,-0.131,-0.132,-0.132
+solar_thermal_cap_gw,2.302,2.302,2.302,2.303,2.303,7.3,Red Eléctrica,central,1,2.171,2.171,2.171,2.17,2.17
+wind_cap_gw,26.756,28.194,29.63,30.543,31.519,60.537,PNIEC,central,1,1.263,1.147,1.043,0.982,0.921
+wind_cap_gw,26.756,28.194,29.63,30.543,31.519,50,Aurora Energy Research,upper bound,0.5,0.869,0.773,0.687,0.637,0.586
+wind_cap_gw,26.756,28.194,29.63,30.543,31.519,47.55,Electricity Optimization,lower bound,0.5,0.777,0.687,0.605,0.557,0.509
+wind_cap_gw,26.756,28.194,29.63,30.543,31.519,37,Aurora Energy Research,central-old,0.2,0.383,0.312,0.249,0.211,0.174
+wind_cap_gw,26.756,28.194,29.63,30.543,31.519,48.55,Red Eléctrica,central,1,0.815,0.722,0.639,0.59,0.54
+other_renewable_cap_gw,1.099,1.102,1.104,1.111,1.116,1.694,PNIEC,central,1,0.541,0.537,0.534,0.525,0.518
+other_renewable_cap_gw,1.099,1.102,1.104,1.111,1.116,2,Aurora Energy Research,central,1,0.82,0.815,0.812,0.8,0.792
+other_renewable_cap_gw,1.099,1.102,1.104,1.111,1.116,1.73,Red Eléctrica,central,1,0.574,0.57,0.567,0.557,0.55
+renewable_waste_cap_gw,0.157,0.17,0.17,0.17,0.17,NA,NA,none,1,0,0,0,0,0
+batteries_cap_gw,0.01,0.01,0.015,0.025,0.025,2.5,Red Eléctrica,central,1,249,249,165.667,99,99
+batteries_cap_gw,0.01,0.01,0.015,0.025,0.025,9.4,PNIEC,central,1,939,939,625.667,375,375
+batteries_cap_gw,0.01,0.01,0.015,0.025,0.025,6.6,Aurora Energy Research,central,1,659,659,439,263,263
+cost_coal_eur_gwh,5409.439,12494.451,33971.724,14520.181,12742.67,15130,Heat roadmap EU,central,0.5,1.797,0.211,-0.555,0.042,0.187
+cost_coal_eur_gwh,5409.439,12494.451,33971.724,14520.181,12742.67,21210,Heat roadmap EU,upper bound,0.2,2.921,0.698,-0.376,0.461,0.664
+cost_coal_eur_gwh,5409.439,12494.451,33971.724,14520.181,12742.67,11050,Heat roadmap EU,lower bound,0.2,1.043,-0.116,-0.675,-0.239,-0.133
+cost_gas_eur_gwh,10297.24,47488.082,99674.603,39371.644,34914.317,30000,Aurora Energy Research,central,1,1.913,-0.368,-0.699,-0.238,-0.141
+cost_gas_eur_gwh,10297.24,47488.082,99674.603,39371.644,34914.317,46000,Aurora Energy Research,upper bound,0.5,3.467,-0.031,-0.538,0.168,0.318
+cost_gas_eur_gwh,10297.24,47488.082,99674.603,39371.644,34914.317,20000,Aurora Energy Research,lower bound,0.5,0.942,-0.579,-0.799,-0.492,-0.427
+cost_gas_eur_gwh,10297.24,47488.082,99674.603,39371.644,34914.317,35550,Heat roadmap EU,central,0.5,2.452,-0.251,-0.643,-0.097,0.018
+cost_gas_eur_gwh,10297.24,47488.082,99674.603,39371.644,34914.317,47110,Heat roadmap EU,upper bound,0.2,3.575,-0.008,-0.527,0.197,0.349
+cost_gas_eur_gwh,10297.24,47488.082,99674.603,39371.644,34914.317,23620,Heat roadmap EU,lower bound,0.2,1.294,-0.503,-0.763,-0.4,-0.323
+cost_gas_eur_gwh,10297.24,47488.082,99674.603,39371.644,34914.317,36600,Heat roadmap EU,specific scenario,0.5,2.554,-0.229,-0.633,-0.07,0.048
+cost_gas_eur_gwh,10297.24,47488.082,99674.603,39371.644,34914.317,29000,Heat roadmap EU,specific scenario,0.5,1.816,-0.389,-0.709,-0.263,-0.169
+cost_gas_eur_gwh,10297.24,47488.082,99674.603,39371.644,34914.317,24600,Heat roadmap EU,specific scenario,0.5,1.389,-0.482,-0.753,-0.375,-0.295
+cost_diesel_eur_gwh,27107.084,43032.73,83306.323,64122.473,55546.441,49150,Heat roadmap EU,central,0.5,0.813,0.142,-0.41,-0.233,-0.115
+cost_diesel_eur_gwh,27107.084,43032.73,83306.323,64122.473,55546.441,62290,Heat roadmap EU,upper bound,0.2,1.298,0.448,-0.252,-0.029,0.121
+cost_diesel_eur_gwh,27107.084,43032.73,83306.323,64122.473,55546.441,42460,Heat roadmap EU,lower bound,0.2,0.566,-0.013,-0.49,-0.338,-0.236
+cost_uranium_eur_gwh,1692,1824.874,2544.975,2972.863,4016.247,NA,NA,none,1,0,0,0,0,0
+eu_ets_price_eur_tco2,25.667,55.449,81.336,84.769,67.181,146,Bloomberg,central,1,4.688,1.633,0.795,0.722,1.173
+eu_ets_price_eur_tco2,25.667,55.449,81.336,84.769,67.181,135,Morgan stanley,central,1,4.26,1.435,0.66,0.593,1.009
+eu_ets_price_eur_tco2,25.667,55.449,81.336,84.769,67.181,130,Aurora Energy Research,central,1,4.065,1.344,0.598,0.534,0.935
