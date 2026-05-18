@@ -248,10 +248,10 @@ print("--- IMPUTATION COMPLETE ---\n")
 
 # Fixed hydro capacities (MW)
 # Sources: ENTSO-E Transparency Platform
-full_df['run_of_river_hydro_cap_mw']   = 1154.8
+full_df['run_of_river_hydro_cap_mw']   = 3453.0
 full_df['pumped_hydro_turbine_cap_mw'] = 3331.0
 full_df['pumped_hydro_pump_cap_mw']    = 2278.0
-full_df['conventional_hydro_cap_mw']   = 15771.4
+full_df['conventional_hydro_cap_mw']   = 13655.0
 
 # Battery capacity by year (MW, source: REE System Reports 2020-2024).
 # Grid-scale battery storage in Spain remained at ~25 MW throughout 2020-2024
