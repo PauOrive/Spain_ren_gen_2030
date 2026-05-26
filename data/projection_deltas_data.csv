@@ -21,13 +21,13 @@ nuclear_cap_gw,7.117,7.117,7.117,7.117,7.117,3.041,PNIEC,central,1,-0.573,-0.573
 nuclear_cap_gw,7.117,7.117,7.117,7.117,7.117,4,Aurora Energy Research,central,1,-0.438,-0.438,-0.438,-0.438,-0.438
 nuclear_cap_gw,7.117,7.117,7.117,7.117,7.117,4.117,Year Nucnet,central,1,-0.422,-0.422,-0.422,-0.422,-0.422
 nuclear_cap_gw,7.117,7.117,7.117,7.117,7.117,3.04,Red Eléctrica,central,1,-0.573,-0.573,-0.573,-0.573,-0.573
-conventional_hydro_cap_gw,15.771,15.771,15.771,15.771,15.771,14.562,PNIEC,central,1,-0.077,-0.077,-0.077,-0.077,-0.077
-conventional_hydro_cap_gw,15.771,15.771,15.771,15.771,15.771,15.7,Aurora Energy Research,central,1,-0.005,-0.005,-0.005,-0.005,-0.005
-conventional_hydro_cap_gw,15.771,15.771,15.771,15.771,15.771,15.655,Red Eléctrica,central,1,-0.007,-0.007,-0.007,-0.007,-0.007
-run_of_river_hydro_cap_gw,1.155,1.155,1.155,1.155,1.155,NA,NA,none,1,0,0,0,0,0
-pumped_hydro_turb_cap_gw,3.418,3.418,3.418,3.418,3.418,4,PNIEC,central,1,0.17,0.17,0.17,0.17,0.17
-pumped_hydro_turb_cap_gw,3.418,3.418,3.418,3.418,3.418,6.4,Aurora Energy Research,central,1,0.872,0.872,0.872,0.872,0.872
-pumped_hydro_turb_cap_gw,3.418,3.418,3.418,3.418,3.418,6.9,Red Eléctrica,central,1,1.019,1.019,1.019,1.019,1.019
+conventional_hydro_cap_gw,13.655,13.655,13.655,13.655,13.655,13.562,PNIEC,central,1,-0.007,-0.007,-0.007,-0.007,-0.007
+conventional_hydro_cap_gw,13.655,13.655,13.655,13.655,13.655,13.7,Aurora Energy Research,central,1,0.003,0.003,0.003,0.003,0.003
+conventional_hydro_cap_gw,13.655,13.655,13.655,13.655,13.655,13.655,Red Eléctrica,central,1,0,0,0,0,0
+run_of_river_hydro_cap_gw,3.453,3.453,3.453,3.453,3.453,NA,NA,none,1,0,0,0,0,0
+pumped_hydro_turb_cap_gw,3.331,3.331,3.331,3.331,3.331,4,PNIEC,central,1,0.201,0.201,0.201,0.201,0.201
+pumped_hydro_turb_cap_gw,3.331,3.331,3.331,3.331,3.331,6.4,Aurora Energy Research,central,1,0.921,0.921,0.921,0.921,0.921
+pumped_hydro_turb_cap_gw,3.331,3.331,3.331,3.331,3.331,6.9,Red Eléctrica,central,1,1.071,1.071,1.071,1.071,1.071
 solar_pv_cap_gw,10.8,14.364,19.407,26.735,35.268,72.13,PNIEC,central,1,5.679,4.022,2.717,1.698,1.045
 solar_pv_cap_gw,10.8,14.364,19.407,26.735,35.268,33.2,Electricity Optimization,central-old,0.2,2.074,1.311,0.711,0.242,-0.059
 solar_pv_cap_gw,10.8,14.364,19.407,26.735,35.268,56,Aurora Energy Research,upper bound,0.5,4.185,2.899,1.886,1.095,0.588
