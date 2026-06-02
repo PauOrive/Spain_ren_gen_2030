@@ -4,7 +4,7 @@ library(tidyverse)
 library(patchwork)
 library(zoo)
 
-setwd("/Users/pauorive23/Desktop/GitHub/Spain_ren_gen_2030")
+setwd("define_your_working_directory")
 
 # load data and add some grouped columns
 historical_data_in <- read_csv("data/historical_data.csv")

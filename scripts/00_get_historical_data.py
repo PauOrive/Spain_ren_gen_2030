@@ -19,10 +19,10 @@ DATA_OTHER_DIR = os.path.join(REPO_ROOT, "data", "other")
 # 1. CONFIGURATION AND DICTIONARIES
 # =========================================================
 
-TOKEN = "e5abc167c3936f4d527b6e44b07a748f8796092b5fc767a358a2d84784dc7050"
+TOKEN = "enter-your-esios-token"
 HEADERS = {'x-api-key': TOKEN, 'Accept': 'application/json'}
 BASE_URL = "https://api.esios.ree.es/indicators/"
-APIKey_entsoe = "0b312fe1-9d1a-4de1-a307-767ff7968c3c"
+APIKey_entsoe = "enter-your-entsoe-api-key"
 
 YEAR_START = 2020
 YEAR_END = 2024
