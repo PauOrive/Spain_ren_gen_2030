@@ -43,7 +43,8 @@ vignettes/*.pdf
 docs/
 
 # Detailed output tables (too large for GitHub)
-output/detailed_results/00_detailed_results
+output/detailed_results/*
+!output/detailed_results/.gitkeep
 
 # translation temp files
 po/*~
