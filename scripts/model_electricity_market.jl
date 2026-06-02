@@ -19,7 +19,7 @@ function dispatch_electricity_market(;
     )
 
     # Initialize the model solver
-    model = Model(Gurobi.Optimizer)
+    model = Model(() -> Gurobi.Optimizer(GRB_ENV))
     set_optimizer_attribute(model, "OutputFlag", 0)
     set_optimizer_attribute(model, "TimeLimit", 300)
     set_optimizer_attribute(model, "MIPGap", 0.03)

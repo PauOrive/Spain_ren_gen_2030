@@ -78,10 +78,15 @@ deltas_dictionary = Dict(
     for year in baseline_years
 )
 
+# define gurobi environment just once
+const GRB_ENV = Gurobi.Env()
+
+# define the directory to save the results
+detailed_dir = joinpath(project_root, "output", "detailed_results")
 
 # ===== Monte Carlo Simulation Loop =====
 
-num_iterations = 100
+num_iterations = 10000
 
 # define containers of results
 main_results      = Dict{String, Vector{NamedTuple}}()   
@@ -162,36 +167,24 @@ for scen in scenario_names
             inputs_realized       = inputs_realized
             )
 
+        # 7. Save results
+        # Checkpoint every 1000 iterations
+        if iter % 1000 == 0
+            @printf("Checkpoint at %s, iter %d\n", scen, iter)
+            CSV.write(joinpath(detailed_dir, "$(scen)_main_results.csv"),     DataFrame(main_results[scen][1:iter]))
+            CSV.write(joinpath(detailed_dir, "$(scen)_hourly_profiles.csv"),  hourly_profiles[scen])
+            CSV.write(joinpath(detailed_dir, "$(scen)_monthly_profiles.csv"), monthly_profiles[scen])
+            CSV.write(joinpath(detailed_dir, "$(scen)_delta_draws.csv"),      DataFrame(delta_draws[scen][1:iter]))
+            CSV.write(joinpath(detailed_dir, "$(scen)_inputs_realized.csv"),  DataFrame(inputs_realized[scen][1:iter]))
+        end
+
     end
-end
 
+    # When finishing every scenario, final save
+    CSV.write(joinpath(detailed_dir, "$(scen)_main_results.csv"),     DataFrame(main_results[scen]))
+    CSV.write(joinpath(detailed_dir, "$(scen)_hourly_profiles.csv"),  hourly_profiles[scen])
+    CSV.write(joinpath(detailed_dir, "$(scen)_monthly_profiles.csv"), monthly_profiles[scen])
+    CSV.write(joinpath(detailed_dir, "$(scen)_delta_draws.csv"),      DataFrame(delta_draws[scen]))
+    CSV.write(joinpath(detailed_dir, "$(scen)_inputs_realized.csv"),  DataFrame(inputs_realized[scen]))
 
-
-# ===== Save Results =====
-
-# These results will be saved into output/detailed_results, as it containes iteration-specific results
-# Due to storage constraints, we cannot upload these into this repository, but if you want to see the detailed
-# resutls, you can run the Monte Carlo simulations in your computer you will be capable to store them with this code
-
-# For the paper purposes, another script generates the min results per iteration which are available in
-# this repository at output/summarized_results
-
-
-detailed_dir = joinpath(project_root, "output", "detailed_results")
-
-for scen in scenario_names
-    # main results
-    CSV.write(joinpath(detailed_dir, "$(scen)_main_results.csv"), DataFrame(main_results[scen]))
-    
-    # hourly profiles
-    CSV.write(joinpath(detailed_dir, "$(scen)_hourly_profiles.csv"), DataFrame(hourly_profiles[scen]))
-    
-    # monthly profiles
-    CSV.write(joinpath(detailed_dir, "$(scen)_monthly_profiles.csv"), DataFrame(monthly_profiles[scen]))
-    
-    # delta draws
-    CSV.write(joinpath(detailed_dir, "$(scen)_delta_draws.csv"), DataFrame(delta_draws[scen]))
-    
-    # demand/capacity/cost inputs
-    CSV.write(joinpath(detailed_dir, "$(scen)_inputs_realized.csv"), DataFrame(inputs_realized[scen]))
 end
