@@ -1,0 +1,6 @@
+Scenario,coal_cap_gw,combined_cycle_cap_gw,gas_turbine_cap_gw,vapor_turbine_cap_gw,cogeneration_cap_gw,diesel_cap_gw,nonrenewable_waste_cap_gw,nuclear_cap_gw,conventional_hydro_cap_gw,run_of_river_hydro_cap_gw,solar_pv_cap_gw,solar_thermal_cap_gw,wind_cap_gw,other_renewable_cap_gw,renewable_waste_cap_gw,pumped_hydro_turb_cap_gw,pumped_hydro_pump_cap_gw,batteries_cap_gw
+baseline,0.0,24.66,1.15,0.48,4.25,0.77,0.43,3.54,13.64,3.45,52.42,4.75,51.5,1.81,0.17,5.78,3452.69,6.2
+nuclear,0.0,24.66,1.15,0.48,4.25,0.77,0.43,7.12,13.64,3.45,52.63,4.8,51.68,1.81,0.17,5.74,3433.1,3.12
+optimistic,0.0,24.65,1.15,0.48,4.25,0.77,0.43,3.55,13.64,3.45,52.36,4.75,51.54,1.82,0.17,5.76,3440.11,9.32
+climate change,0.0,24.66,1.15,0.48,4.25,0.77,0.43,3.54,13.64,3.45,52.26,4.76,51.58,1.81,0.17,5.78,3452.6,6.2
+no batteries,0.0,24.65,1.15,0.48,4.25,0.77,0.43,3.56,13.64,3.45,52.44,4.74,51.54,1.81,0.17,5.77,3445.41,0.02
