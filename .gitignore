@@ -39,8 +39,11 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
-# pkgdown site
+# Where we have our LaTeX docs
 docs/
+
+# Detailed output tables (too large for GitHub)
+output/detailed_results
 
 # translation temp files
 po/*~
