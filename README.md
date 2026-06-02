@@ -14,7 +14,7 @@ Across all five scenarios, Loss of Load Expectation and Expected Energy Not Serv
 
 -   Spain’s 81% renewable electricity target for 2030 is unlikely under current policy.
 -   Compliance depends almost exclusively on capacity deployment, not market conditions.
--   Nuclear retention minimises prices and emissions but makes the renewable target unachievable.
+-   Nuclear fleet retention minimises prices and emissions but makes the renewable target unachievable.
 -   Climate change significantly reduces the probability of meeting the 2030 target
 
 ## Methdology summary
@@ -55,10 +55,24 @@ Each folder contains its own README.md file with specific guidelines to navigate
 In order to replicate our work you just have to:
 
 1. Clone or download this repository
-2. Install julia and the required dependencies (also R and python if you also want to run other scripts)
+2. Install julia (we have used v.1.11.1) and the required dependencies (also R and python if you also want to run other scripts)
 3. Get a Gurobi optimization license (note that the one available in the free trial version is not powerful enough)
 4. From the project root directory, run the script `04_monte_carlo_simulations.jl` 
 5. Once run, get the results with `05_results_analysis.py` 
+
+```bash
+cd replication
+
+# Install package dependencies
+julia --project=. -e 'using Pkg; Pkg.instantiate()'
+pip install -r requirements.txt
+
+# Run simulations
+julia --project=. ../scripts/04_monte_carlo_simulations.jl
+
+# Generate results
+python ../scripts/05_analyze_results.py
+```
 
 We encourage researchers to play with the numbers defining the scenarios or even include new scenarios. Scenarios are defined in the same `04_monte_carlo_simulations.jl` script, though for advanced manipulation you might need to dive into `02_auxiliary_functions.jl` and `03_model_electricity_market.jl`.
 
@@ -70,7 +84,9 @@ Our methodology does not incorporate competition among producers and the transmi
 
 Any other constructive criticism would be very appreciated by the authors. 
 
+## License
 
+This repository is licensed under CC BY 4.0.
 
 ## Versions
 
