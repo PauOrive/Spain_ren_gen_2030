@@ -4,7 +4,7 @@ This folder contains the scripts needed to replicate the paper. The scripts defi
 
 They are organized as follows:
 
-1. Script to get the historical calibration data
+## 1. Script to get the historical calibration data
 
 These are non essential to replicate the paper as we provide the complete datasets, but show where the data was sourced from.
 
@@ -30,7 +30,7 @@ Forking this repository you can play adjusting the model and/or scenario-specifi
 Note that you will need a [Gurobi license](https://www.gurobi.com/academia/academic-program-and-licenses/) to run the model (free for students!). 
 If you do, we would love to get your feedback!
 
-3. Scrips to create the graphs and other outputs
+## 3. Scrips to create the graphs and other outputs
 
 -   `01_summary_statistics.R` creates summary statistics tables and graphs of the historical data (2020-2024), saved in `output/historical_summary_stats`
 -   `05_results_analysis.py` creates the summary tables and graphs for the main results, saved in `output/results_analysis`
