@@ -1,15 +1,22 @@
 # this script produces some graphs to obtain descriptive statistics
 
 library(tidyverse)
+library(patchwork)
+library(zoo)
 
-setwd("/Users/pauorive23/Desktop/GitHub/Spain_ren_gen_2030/data")
+setwd("/Users/pauorive23/Desktop/GitHub/Spain_ren_gen_2030")
 
 # load data and add some grouped columns
-historical_data_in <- read_csv("historical_data.csv")
+historical_data_in <- read_csv("data/historical_data.csv")
+
+# define output paths
+output_tables <- "output/historical_summary_stats/tables"
+output_graphs <- "output/historical_summary_stats/graphs"
+
 
 historical_data <- historical_data_in |>  
   mutate(total_demand_gwh = residential_demand_gwh + commercial_demand_gwh + industrial_demand_gwh,
-        renewable_generation_gwh = conventional_hydro_gen_gwh + run_of_river_hydro_gen_gwh + pumped_hydro_gen_gwh + solar_pv_gen_gwh + solar_thermal_gen_gwh + wind_gen_gwh + other_renewable_gen_gwh + renewable_waste_gen_gwh,
+        renewable_generation_gwh = conventional_hydro_gen_gwh + run_of_river_hydro_gen_gwh + solar_pv_gen_gwh + solar_thermal_gen_gwh + wind_gen_gwh + other_renewable_gen_gwh + renewable_waste_gen_gwh,
         nonrenewable_generation_gwh = coal_gen_gwh + combined_cycle_gen_gwh + gas_turbine_gen_gwh + vapor_turbine_gen_gwh + cogeneration_gen_gwh + diesel_gen_gwh + nonrenewable_waste_gen_gwh + nuclear_gen_gwh,
         total_generation_gwh = renewable_generation_gwh + nonrenewable_generation_gwh,
         total_imports_gwh = imports_France_gwh + imports_Portugal_gwh + imports_Morocco_gwh,
@@ -47,6 +54,8 @@ summary_per_year <- historical_data |>
            .names = "share_{.col}")
   )
 
+write_csv(summary_per_year, file.path(output_tables, "summary_per_year.csv"))
+
 
 ## ===== Summary tables by month of all variables =====
 summary_per_year_month <- historical_data |>
@@ -75,6 +84,7 @@ summary_per_year_month <- historical_data |>
            .names = "share_{.col}")
   )
 
+write_csv(summary_per_year_month, file.path(output_tables, "summary_per_year_month.csv"))
 
 
 ## ===== Generation shares (grouped) ===== 
@@ -107,12 +117,12 @@ grouped_generation_year <- historical_data |>
   mutate(across(.cols = where(is.numeric) & -all_of("year"),
                 .fns = ~ . / `Total`))
 
-
+write_csv(grouped_generation_year, file.path(output_tables, "grouped_generation_year.csv"))
 
 
 ## ===== Historical emissions =====
 # just takes into account direct emissions, hence lower emissions rate than usually reported is to be expected
-emission_rates <- read_csv("technology_data.csv", show_col_types = FALSE) 
+emission_rates <- read_csv("data/technology_data.csv", show_col_types = FALSE) 
 
 # print direct emission rates
 emission_rates$direct_e_tco2_gwh[emission_rates$direct_e_tco2_gwh > 0]
@@ -133,6 +143,7 @@ emissions_per_year <- historical_data |>
   mutate(emissions_intensity_tco2_gwh = total_emissions_tco2 / total_generation_gwh / 1e3)
 
 
+write_csv(emissions_per_year, file.path(output_tables, "emissions_per_year.csv"))
 
 
 
@@ -228,6 +239,8 @@ p1 <- ggplot(generation_long, aes(x = date, y = generation, fill = technology)) 
 
 p1
 
+ggsave(file.path(output_graphs, "01_historical_generation.png"), bg = "white")
+
 
 ## ===== Graph 2: Historical capacity by month ===== 
 
@@ -307,8 +320,213 @@ p2 <- ggplot(capacity_long, aes(x = date, y = capacity, fill = technology)) +
 
 p2
 
+ggsave(file.path(output_graphs, "02_historical_capacity.png"), bg = "white")
 
-## ===== Graph 3: Sectoral demand profiles ===== 
+
+# Put one graph on top of the other
+gp1p2 <- (p2 / p1) +
+  plot_layout(guides = "collect") &
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 10)
+  )
+
+gp1p2
+
+ggsave(file.path(output_graphs, "12_historical_gen_cap.png"),
+       gp1p2,
+       bg = "white",
+       width = 8,
+       height = 10
+       )
+
+
+
+## ===== Graph 3: Evolution of mean renewable share historically ===== 
+
+# Create monthly date
+renewable_share <- summary_per_year_month |>
+  select(year, month, renewable_share = share_renewable_generation_gwh) |> 
+  mutate(
+    date = ymd(paste(year, month, "01"))
+  )
+
+# Identify significant peaks and troughs
+renewable_share_labels <- renewable_share |>
+  mutate(
+    roll_max = rollapply(
+      renewable_share,
+      width = 7,
+      FUN = max,
+      fill = NA,
+      align = "center"
+    ),
+    roll_min = rollapply(
+      renewable_share,
+      width = 7,
+      FUN = min,
+      fill = NA,
+      align = "center"
+    ),
+    is_global_peak = renewable_share == roll_max,
+    is_global_trough = renewable_share == roll_min,
+    lag_3 = lag(renewable_share, 3),
+    lead_3 = lead(renewable_share, 3),
+    peak_significant =
+      is_global_peak &
+      renewable_share > pmax(lag_3, lead_3, na.rm = TRUE) + 0.02,
+    trough_significant =
+      is_global_trough &
+      renewable_share < pmin(lag_3, lead_3, na.rm = TRUE) - 0.02
+  )
+
+peak_trough_points <- renewable_share_labels |>
+  filter(peak_significant | trough_significant)
+
+peak_labels <- renewable_share_labels |>
+  filter(peak_significant)
+
+trough_labels <- renewable_share_labels |>
+  filter(trough_significant)
+
+last_obs <- renewable_share |>
+  slice_tail(n = 1)
+
+# Plot
+p3 <- ggplot(renewable_share, aes(x = date, y = renewable_share)) +
+  
+  # Main series
+  geom_line(
+    color = "black",
+    linewidth = 1.2
+  ) +
+  
+  # Linear trend
+  geom_smooth(
+    method = "lm",
+    se = FALSE,
+    color = "darkred",
+    linetype = "dashed",
+    alpha = 0.7
+  ) +
+  
+  # Vertical lines every 6 months
+  geom_vline(
+    xintercept = seq(
+      min(renewable_share$date),
+      max(renewable_share$date),
+      by = "6 months"
+    ),
+    color = "gray80",
+    linewidth = 0.2
+  ) +
+  
+  # Highlight peaks and troughs
+  geom_point(
+    data = peak_trough_points,
+    color = "black",
+    fill = "white",
+    shape = 21,
+    size = 2,
+    stroke = 1.2
+  ) +
+  
+  # Highlight latest observation
+  geom_point(
+    data = last_obs,
+    color = "black",
+    fill = "white",
+    shape = 21,
+    size = 2,
+    stroke = 1.2
+  ) +
+  
+  # Peak labels
+  geom_text(
+    data = peak_labels,
+    aes(label = round(100 * renewable_share, 1)),
+    vjust = -0.8,
+    fontface = "bold",
+    size = 3,
+    color = "black"
+  ) +
+  
+  # Trough labels
+  geom_text(
+    data = trough_labels,
+    aes(label = round(100 * renewable_share, 1)),
+    vjust = 1.3,
+    fontface = "bold",
+    size = 3,
+    color = "black"
+  ) +
+  
+  # Last observation label
+  geom_text(
+    data = last_obs,
+    aes(label = round(100 * renewable_share, 1)),
+    vjust = 1.3,
+    fontface = "bold",
+    size = 3,
+    color = "black"
+  ) +
+  
+  scale_x_date(
+    date_breaks = "6 months",
+    date_labels = "%y-%m",
+    expand = c(0.02, 0.02)
+  ) +
+  
+  scale_y_continuous(
+    labels = scales::number_format(
+      scale = 100,
+      accuracy = 1
+    ),
+    breaks = seq(0, 1, by = 0.05)
+  ) +
+  
+  labs(
+    y = "Renewable share (%)",
+    x = NULL
+  ) +
+  
+  theme_minimal() +
+  
+  theme(
+    axis.title.y = element_text(
+      face = "bold",
+      size = 13
+    ),
+    axis.text = element_text(
+      color = "gray10",
+      face = "bold",
+      size = 10
+    ),
+    axis.text.y = element_text(size = 11),
+    axis.ticks.x = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      color = "gray75",
+      fill = NA,
+      linewidth = 0.5
+    ),
+    plot.margin = margin(
+      20, 30, 20, 20
+    )
+  )
+
+p3
+
+ggsave(file.path(output_graphs, "03_historical_ren_share.png"),
+       p3,
+       bg = "white",
+       width = 5
+)
+
+
+## ===== Graph 4: Sectoral demand profiles ===== 
 
 # Define colors
 demand_colors <- c("Residential" = "steelblue",
@@ -316,13 +534,198 @@ demand_colors <- c("Residential" = "steelblue",
                    "Industrial" = "maroon",
                    "Total" = "seagreen")
 
-### G3.1 Historical evolution of total demand ----
+### G4.1 Historical evolution of total demand ----
+
+demand_by_year_sector <- historical_data |> 
+  select(year, residential_demand_gwh, commercial_demand_gwh, industrial_demand_gwh) |> 
+  group_by(year) |> 
+  summarize(total_res_demand = sum(residential_demand_gwh),
+            total_com_demand = sum(commercial_demand_gwh),
+            total_ind_demand = sum(industrial_demand_gwh)) |> 
+  mutate(total_res_demand = total_res_demand / 1e3,
+         total_com_demand = total_com_demand / 1e3,
+         total_ind_demand = total_ind_demand / 1e3) |> 
+  mutate(total_demand = total_res_demand + total_com_demand + total_ind_demand)
+
+historical_demand <- tibble(
+  year = c(2015, 2016, 2017, 2018, 2019),
+  total_res_demand = NA,
+  total_com_demand = NA,
+  total_ind_demand = NA,
+  total_demand = c(262.81, 264.67, 267.87, 268.89, 264.66)
+)
+
+projection_demand <- tibble(
+  year = rep(2030, 9),
+  total_res_demand = NA,
+  total_com_demand = NA,
+  total_ind_demand = NA,
+  total_demand = c(344, 274, 295, 330, 311.70, 351.06, 286.5, 280, 294)
+)
+
+df_demand_complete <- rbind(historical_demand, demand_by_year_sector, projection_demand)
+
+# Prepare data for plotting
+# 1. Data for 2015-2019 (total demand only)
+df_2015_2019 <- df_demand_complete |> 
+  filter(year >= 2015 & year <= 2019) |>
+  mutate(group = "historical_total")
+
+# 2. Data for 2020-2024 (stacked sectorial)
+df_2020_2024 <- df_demand_complete |> 
+  filter(year >= 2020 & year <= 2024) |>
+  pivot_longer(cols = c(total_res_demand, total_com_demand, total_ind_demand),
+               names_to = "sector", values_to = "demand") |>
+  mutate(sector = case_when(
+    sector == "total_res_demand" ~ "Residential",
+    sector == "total_com_demand" ~ "Commercial", 
+    sector == "total_ind_demand" ~ "Industrial"
+  ))
+
+# 3. Data for 2030 (ordered by ascending total_demand)
+df_2030 <- df_demand_complete |> 
+  filter(year == 2030) |>
+  arrange(total_demand) |>
+  mutate(
+    scenario = paste0("S", 1:9),  # Create scenario labels
+    color_group = ifelse(total_demand < 300, "below_300", "above_300"),
+    # Position columns with reduced gap (2025-2029 for 9 scenarios)
+    year_dodged = seq(2025, 2029, length.out = 9)
+  )
+
+# Data for trend line (2015-2024)
+df_trend <- df_demand_complete |> 
+  filter(year >= 2015 & year <= 2024) |>
+  select(year, total_demand)
+
+# Create the plot
+# Prepare data for plotting
+# 1. Data for 2015-2019 (total demand only)
+df_2015_2019 <- df_demand_complete |> 
+  filter(year >= 2015 & year <= 2019) |>
+  mutate(group = "historical_total")
+
+# 2. Data for 2020-2024 (stacked sectorial)
+df_2020_2024 <- df_demand_complete |> 
+  filter(year >= 2020 & year <= 2024) |>
+  pivot_longer(cols = c(total_res_demand, total_com_demand, total_ind_demand),
+               names_to = "sector", values_to = "demand") |>
+  mutate(sector = case_when(
+    sector == "total_res_demand" ~ "Residential",
+    sector == "total_com_demand" ~ "Commercial", 
+    sector == "total_ind_demand" ~ "Industrial"
+  ))
+
+df_2020_2024 <- df_2020_2024 |> 
+  mutate(demand_share = demand/total_demand)
+
+# 3. Data for 2030 (ordered by ascending total_demand)
+df_2030 <- df_demand_complete |> 
+  filter(year == 2030) |>
+  arrange(total_demand) |>
+  mutate(
+    scenario = paste0("S", 1:9),  # Create scenario labels
+    color_group = ifelse(total_demand < 300, "Accepted projections", "Rejected projections"),
+    # Position columns with more space after 2024 (2026-2030 for 9 scenarios)
+    year_dodged = seq(2026, 2030, length.out = 9)
+  )
+
+# Data for trend line (2015-2024)
+df_trend <- df_demand_complete |> 
+  filter(year >= 2015 & year <= 2024) |>
+  select(year, total_demand)
+
+# Create the plot
+p4.1 <- ggplot() +
+  # 1. Total demand columns for 2015-2019
+  geom_col(data = df_2015_2019, 
+           aes(x = year, y = total_demand), 
+           fill = "lightblue", width = 0.7, alpha = 0.8) +
+  
+  # 2. Stacked columns for 2020-2024
+  geom_col(data = df_2020_2024, 
+           aes(x = year, y = demand, fill = sector), 
+           width = 0.7, alpha = 0.8) +
+  
+  # 4. Columns for 2030 scenarios (ordered and larger width)
+  geom_col(data = df_2030, 
+           aes(x = year_dodged, y = total_demand, fill = color_group), 
+           width = 0.6, alpha = 0.8) +
+  
+  # 5. Trend line for 2020-2024 extended from 2015 to 2030
+  geom_smooth(data = df_demand_complete |> filter(year >= 2020 & year <= 2024), 
+              aes(x = year, y = total_demand, linetype = "2020-2024 trend"), 
+              method = "lm", se = FALSE, fullrange = TRUE,
+              color = "darkblue", size = 1.2) +
+  
+  # Custom colors
+  scale_fill_manual(values = c(
+    "Residential" = "steelblue",
+    "Commercial" = "peru", 
+    "Industrial" = "maroon",
+    "Accepted projections" = "seagreen",
+    "Rejected projections" = "darkred"
+  )) +
+  
+  scale_linetype_manual(name = "", values = c("2020-2024 trend" = "dashed")) +
+  
+  # Customize x-axis with more space between 2024 and 2026
+  scale_x_continuous(
+    breaks = c(2015:2024, 2028),
+    labels = c(2015:2024, "2030"),
+    limits = c(2014.5, 2030.5)
+  ) +
+  
+  # Labels and theme
+  labs(
+    x = NULL,
+    y = "Demand (TWh)",
+    fill = "Category"
+  ) +
+  
+  theme_minimal() +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(face = "bold", size = 16),
+    axis.text = element_text(color = "gray10", face = "bold", size = 12),
+    axis.text.y = element_text(size = 14),
+    axis.ticks.x = element_blank(),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 14),
+    legend.position = "bottom",
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "gray75", fill = NA, size = 0.5),
+    plot.margin = margin(20, 30, 20, 20)
+  ) +
+  
+  # Add numbers on top of columns
+  # For 2015-2019 (1 decimal)
+  geom_text(data = df_2015_2019, 
+            aes(x = year, y = total_demand + 5, label = round(total_demand, 1)),
+            vjust = -0.8, hjust = 0.5, color = "black", size = 4.5, fontface = "bold") +
+  
+  # For 2020-2024 stacked columns (1 decimal, show total)
+  geom_text(data = df_demand_complete|> filter(year >= 2020 & year <= 2024), 
+            aes(x = year, y = total_demand + 5, label = round(total_demand, 1)),
+            vjust = -0.8, hjust = 0.5, color = "black", size = 4.5, fontface = "bold") +
+  
+  # For 2030 scenarios (0 decimals)
+  geom_text(data = df_2030, 
+            aes(x = year_dodged, y = total_demand + 5, label = round(total_demand, 0)),
+            vjust = -0.8, hjust = 0.5, color = "black", size = 4.5, fontface = "bold")
+
+# Display the plot
+p4.1
+
+ggsave(file.path(output_graphs, "41_evolution_demand.png"),
+       p4.1,
+       bg = "white"
+)
 
 
 
-
-
-### G3.2 Hourly demand profile ----
+### G4.2 Hourly demand profile ----
 
 # Define function to compute hourly/monthly profiles
 compute_profiles <- function(data, group_var) {
@@ -354,7 +757,7 @@ hourly_demand <- compute_profiles(historical_data, hour)
   
 
 # Create the hourly plot 
-p3.2 <- ggplot(hourly_demand, aes(x = hour)) +
+p4.2 <- ggplot(hourly_demand, aes(x = hour)) +
   # Add confidence interval ribbons
   geom_ribbon(aes(ymin = res_ci_lower, ymax = res_ci_upper), 
               fill = "steelblue", alpha = 0.2) +
@@ -390,16 +793,21 @@ p3.2 <- ggplot(hourly_demand, aes(x = hour)) +
     plot.margin = margin(20, 30, 20, 20)
   )
 
-p3.2
+p4.2
+
+ggsave(file.path(output_graphs, "42_historical_hourly_demand.png"),
+       p4.2,
+       bg = "white"
+)
 
 
-### G3.3 Monthly demand profile ----
+### G4.3 Monthly demand profile ----
 
 # Calculate monthly demand with confidence intervals
 monthly_demand <- compute_profiles(historical_data, month)
 
 # Create the monthly plot 
-p3.3 <- ggplot(monthly_demand, aes(x = month)) +
+p4.3 <- ggplot(monthly_demand, aes(x = month)) +
   # Add confidence interval ribbons
   geom_ribbon(aes(ymin = res_ci_lower, ymax = res_ci_upper), 
               fill = "steelblue", alpha = 0.2) +
@@ -438,40 +846,151 @@ p3.3 <- ggplot(monthly_demand, aes(x = month)) +
     plot.margin = margin(20, 30, 20, 20)
   )
 
-p3.3
+p4.3
 
+ggsave(file.path(output_graphs, "43_historical_hourly_demand.png"),
+       p4.3,
+       bg = "white"
+)
 
-## ===== Solar and wind capacity factors ===== 
+## ===== Graph 5. Solar and wind capacity factors ===== 
 
 solar_wind_cap_factors <- historical_data |> 
   select(year, month, day, hour, solar_pv_cap_factor, wind_cap_factor)
 
-hourly_summary <- solar_wind_cap_factors |>
-  group_by(hour) |>
-  summarise(
-    solar_mean = mean(solar_pv_cap_factor, na.rm = TRUE),
-    solar_low  = quantile(solar_pv_cap_factor, 0.025, na.rm = TRUE),
-    solar_high = quantile(solar_pv_cap_factor, 0.975, na.rm = TRUE),
-    wind_mean  = mean(wind_cap_factor, na.rm = TRUE),
-    wind_low   = quantile(wind_cap_factor, 0.025, na.rm = TRUE),
-    wind_high  = quantile(wind_cap_factor, 0.975, na.rm = TRUE)
+# Transform data to long format for box plots
+hourly_long_boxplot <- solar_wind_cap_factors |>
+  pivot_longer(
+    cols = c(solar_pv_cap_factor, wind_cap_factor),
+    names_to = "type",
+    values_to = "capacity_factor"
+  ) |>
+  mutate(
+    type = case_when(
+      type == "solar_pv_cap_factor" ~ "Solar PV",
+      type == "wind_cap_factor" ~ "Wind",
+      TRUE ~ type
+    ),
+    hour = factor(hour)  
   )
 
-# Plot for solar
-ggplot(hourly_summary, aes(x = hour)) +
-  geom_ribbon(aes(ymin = solar_low, ymax = solar_high), fill = "gold", alpha = 0.3) +
-  geom_line(aes(y = solar_mean), color = "orange", size = 1) +
-  labs(title = "Hourly Solar PV Capacity Factor with 95% CI",
-       x = "Hour of Day", y = "Solar Capacity Factor") +
-  theme_minimal()
+monthly_long_boxplot <- solar_wind_cap_factors %>%
+  pivot_longer(
+    cols = c(solar_pv_cap_factor, wind_cap_factor),
+    names_to = "type",
+    values_to = "capacity_factor"
+  ) %>%
+  mutate(
+    type = case_when(
+      type == "solar_pv_cap_factor" ~ "Solar PV",
+      type == "wind_cap_factor" ~ "Wind",
+      TRUE ~ type
+    ),
+    month = factor(month, levels = 1:12, labels = month.abb)  # Convert month to factor with month names
+  )
 
-# Plot for wind
-ggplot(hourly_summary, aes(x = hour)) +
-  geom_ribbon(aes(ymin = wind_low, ymax = wind_high), fill = "skyblue", alpha = 0.3) +
-  geom_line(aes(y = wind_mean), color = "blue", size = 1) +
-  labs(title = "Hourly Wind Capacity Factor with 95% CI",
-       x = "Hour of Day", y = "Wind Capacity Factor") +
-  theme_minimal()
+
+### G5.1 Hourly capacity factor profiles ----
+
+# Solar PV box plot
+solar_hourly_boxplot <- hourly_long_boxplot |>
+  filter(type == "Solar PV") |>
+  ggplot(aes(x = hour, y = capacity_factor * 100)) +
+  geom_boxplot(fill = "#F4C430", alpha = 0.8, outlier.shape = NA) +
+  labs(y = "Solar PV Capacity Factor (%)") +
+  theme_minimal() +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(face = "bold", size = 16),
+    axis.text = element_text(color = "gray10", face = "bold", size = 12),
+    axis.text.y = element_text(size = 14),
+    axis.ticks.x = element_blank(),
+    legend.position = "none",
+    panel.grid.major.x = element_line(color = "gray90", size = 0.2),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "gray75", fill = NA, size = 0.5),
+    plot.margin = margin(20, 30, 20, 20)
+  )
+
+# Wind box plot
+wind_hourly_boxplot <- hourly_long_boxplot |>
+  filter(type == "Wind") |>
+  ggplot(aes(x = hour, y = capacity_factor * 100)) +
+  geom_boxplot(fill = "seagreen", alpha = 0.8, outlier.shape = NA) +
+  labs(y = "Wind Capacity Factor (%)") +
+  theme_minimal() +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(face = "bold", size = 16),
+    axis.text = element_text(color = "gray10", face = "bold", size = 12),
+    axis.text.y = element_text(size = 14),
+    axis.ticks.x = element_blank(),
+    legend.position = "none",
+    panel.grid.major.x = element_line(color = "gray90", size = 0.2),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "gray75", fill = NA, size = 0.5),
+    plot.margin = margin(20, 30, 20, 20)
+  )
 
 
+p5.1 <- solar_hourly_boxplot + wind_hourly_boxplot
+
+p5.1
+
+ggsave(file.path(output_graphs, "51_hourly_solar_wind_cap_factors.png"),
+       p5.1,
+       bg = "white"
+)
+
+
+### G5.2 Hourly capacity factor profiles ----
+
+# Solar PV monthly box plot
+solar_monthly_boxplot <- monthly_long_boxplot %>%
+  filter(type == "Solar PV") %>%
+  ggplot(aes(x = month, y = capacity_factor * 100)) +
+  geom_boxplot(fill = "#F4C430", alpha = 0.8, outlier.shape = NA) +
+  labs(y = "Solar PV Capacity Factor (%)") +
+  theme_minimal() +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(face = "bold", size = 16),
+    axis.text = element_text(color = "gray10", face = "bold", size = 12),
+    axis.text.y = element_text(size = 14),
+    axis.ticks.x = element_blank(),
+    legend.position = "none",
+    panel.grid.major.x = element_line(color = "gray90", size = 0.2),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "gray75", fill = NA, size = 0.5),
+    plot.margin = margin(20, 30, 20, 20)
+  )
+
+# Wind monthly box plot
+wind_monthly_boxplot <- monthly_long_boxplot %>%
+  filter(type == "Wind") %>%
+  ggplot(aes(x = month, y = capacity_factor * 100)) +
+  geom_boxplot(fill = "seagreen", alpha = 0.8, outlier.shape = NA) +
+  labs(y = "Wind Capacity Factor (%)") +
+  theme_minimal() +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(face = "bold", size = 16),
+    axis.text = element_text(color = "gray10", face = "bold", size = 12),
+    axis.text.y = element_text(size = 14),
+    axis.ticks.x = element_blank(),
+    legend.position = "none",
+    panel.grid.major.x = element_line(color = "gray90", size = 0.2),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(color = "gray75", fill = NA, size = 0.5),
+    plot.margin = margin(20, 30, 20, 20)
+  )
+
+p5.2 <- solar_monthly_boxplot + wind_monthly_boxplot
+
+p5.2
+
+ggsave(file.path(output_graphs, "52_monthly_solar_wind_cap_factors.png"),
+       p5.2,
+       bg = "white"
+)
 
