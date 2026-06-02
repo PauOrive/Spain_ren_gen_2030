@@ -1,8 +1,7 @@
 """
 Results Analysis Script for Spain 2030 Renewable Generation Study
 
-
-Analisis que se van a hacer (basicamente los mismos graficos del thesis):
+Analysis conducted:
 - Summary statistics tables for each scenario
 - Distribution plots (renewable share, prices)
 - Hourly and monthly profiles for emissions and prices
@@ -12,13 +11,12 @@ Analisis que se van a hacer (basicamente los mismos graficos del thesis):
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 from pathlib import Path
 import warnings
 
 warnings.filterwarnings('ignore')
 
-# Optimization for single-column figures
+# Setting for single-column figures
 plt.rcParams.update({
     'font.size': 11,
     'axes.labelsize': 12,
@@ -33,11 +31,15 @@ plt.rcParams.update({
 # ============================================================================
 
 PROJECT_ROOT = Path(__file__).parent.parent
-DATA_DIR = PROJECT_ROOT / "output" / "detailed_results"
-OUTPUT_DIR = PROJECT_ROOT / "output" / "analysis"
+DATA_DIR     = PROJECT_ROOT / "output" / "detailed_results"
+OUTPUT_DIR   = PROJECT_ROOT / "output" / "results_analysis"
+GRAPHS_DIR   = OUTPUT_DIR / "graphs"
+TABLES_DIR   = OUTPUT_DIR / "tables"
 
-# Create output directory if it doesn't exist
+# Create output directories if they don't exist
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+GRAPHS_DIR.mkdir(parents=True, exist_ok=True)
+TABLES_DIR.mkdir(parents=True, exist_ok=True)
 
 # Define scenarios
 SCENARIOS = ["baseline", "nuclear", "optimistic", "climate change", "no batteries"]
@@ -108,326 +110,137 @@ def load_all_scenarios():
         all_data[scenario] = load_scenario_data(scenario)
     return all_data
 
-
-# ============================================================================
-# SUMMARY STATISTICS
-# ============================================================================
-
-# ============================================================================
-# HELPER FUNCTIONS FOR COLUMN DETECTION
-# ============================================================================
-
-def find_column(df, keywords):
-    """
-    Helper function to find a column by keywords.
-    Looks for a column containing all specified keywords (case-insensitive).
-    """
-    keywords = [kw.lower() for kw in keywords] if isinstance(keywords, list) else [keywords.lower()]
-    for col in df.columns:
-        col_lower = col.lower()
-        if all(kw in col_lower for kw in keywords):
-            return col
-    return None
-
-
 # ============================================================================
 # SUMMARY STATISTICS
 # ============================================================================
 
 def calculate_main_statistics(all_data):
     """
-    Calculate main statistics per scenario for the results table.
-    
-    Replicates Table 1 from the paper with key performance measures.
+    Summary statistics table per scenario.
+    Units from Julia model:
+    - Shares: decimal (0-1) → converted to %
+    - Demand: GWh → converted to TWh (/ 1e3)
+    - Welfare columns: euros → converted to €B (/ 1e9)
+    - Emissions: already in MtCO2
+    - Everything else: as-is
     """
-    summary_stats = []
-    
+    rows = []
+
     for scenario_name in SCENARIOS:
         data = all_data.get(scenario_name, {})
-        
         if not data or 'main_results' not in data:
             print(f"Warning: No main_results data for {scenario_name}")
             continue
-        
+
         df = data['main_results']
-        stats = {'Scenario': scenario_name}
-        
-        # Renewable Share - use share column if available (decimal 0-1), convert to %
-        share_ren_col = find_column(df, ['share', 'renewable']) or find_column(df, ['renewable', 'share'])
-        if share_ren_col:
-            ren_share = df[share_ren_col] * 100
-        else:
-            # Calculate from nominal values
-            ren_col = find_column(df, ['renewable', 'generation']) or find_column(df, ['renewable', 'gen'])
-            total_col = find_column(df, ['total', 'generation']) or find_column(df, ['total', 'gen'])
-            if ren_col and total_col:
-                ren_share = (df[ren_col] / df[total_col]) * 100
-            else:
-                ren_share = pd.Series([np.nan] * len(df))
-        
-        stats['Renewable Share (%)'] = ren_share.mean()
-        stats['Ren. Share Std Dev (%)'] = ren_share.std()
-        stats['Ren. Share 5th Pct (%)'] = ren_share.quantile(0.05)
-        stats['Ren. Share 95th Pct (%)'] = ren_share.quantile(0.95)
-        stats['Prob. Target (%)'] = (ren_share >= 81).sum() / len(df) * 100
-        
-        # Emissions - convert from tonnes to MtCO2
-        emis_col = find_column(df, ['direct', 'emissions']) or find_column(df, ['emissions'])
-        if emis_col:
-            stats['Avg. Emissions (MtCO2)'] = (df[emis_col] / 1e6).mean()
-        else:
-            stats['Avg. Emissions (MtCO2)'] = np.nan
-        
-        # Price
-        price_col = find_column(df, ['avg', 'price']) or find_column(df, ['price'])
-        stats['Avg. Price (€/MWh)'] = df[price_col].mean() if price_col else np.nan
-        
-        # Solar Curtailment (%) - direct column search for curt_solar_pv
-        if 'curt_solar_pv' in df.columns:
-            solar_curt_vals = df['curt_solar_pv']
-            # Check if values are in decimal format (0-1)
-            if solar_curt_vals.max() <= 1.0:
-                stats['Solar Curtailment (%)'] = solar_curt_vals.mean() * 100
-            else:
-                stats['Solar Curtailment (%)'] = solar_curt_vals.mean()
-        else:
-            stats['Solar Curtailment (%)'] = np.nan
-        
-        # Wind Curtailment (%) - direct column search for curt_wind
-        if 'curt_wind' in df.columns:
-            wind_curt_vals = df['curt_wind']
-            # Check if values are in decimal format (0-1)
-            if wind_curt_vals.max() <= 1.0:
-                stats['Wind Curtailment (%)'] = wind_curt_vals.mean() * 100
-            else:
-                stats['Wind Curtailment (%)'] = wind_curt_vals.mean()
-        else:
-            stats['Wind Curtailment (%)'] = np.nan
-        
-        # LOE (Loss of Load Events) - lole_hours
-        if 'lole_hours' in df.columns:
-            stats['LOE Hours'] = df['lole_hours'].mean()
-        else:
-            stats['LOE Hours'] = np.nan
-        
-        # EENS (Energy Not Supplied) - total_ens in MWh, convert to GWh
-        if 'total_ens' in df.columns:
-            stats['EENS (GWh)'] = (df['total_ens'] / 1000).mean()
-        else:
-            stats['EENS (GWh)'] = np.nan
-        
-        # Demand
-        demand_col = find_column(df, ['total', 'demand']) or find_column(df, ['demand'])
-        if demand_col:
-            # Convert from MWh to TWh (divide by 1e6)
-            stats['Demand (TWh)'] = (df[demand_col] / 1e6).mean()
-        else:
-            stats['Demand (TWh)'] = np.nan
-        
-        # Consumer Surplus - convert from euros to billions (€B)
-        consumer_col = find_column(df, ['consumer', 'surplus'])
-        if consumer_col:
-            stats['Consumer Surplus (€B)'] = (df[consumer_col] / 1e9).mean()
-        else:
-            stats['Consumer Surplus (€B)'] = np.nan
-        
-        summary_stats.append(stats)
-    
-    summary_df = pd.DataFrame(summary_stats)
-    
-    # Save to CSV
-    output_file = OUTPUT_DIR / "01_main_statistics.csv"
+        ren_share = df['share_renewable_gen'] * 100  
+
+        row = {
+            'Scenario':                scenario_name,
+            # Renewable share
+            'Ren. Share Mean (%)':     round(ren_share.mean(), 2),
+            'Ren. Share Std Dev (%)':  round(ren_share.std(), 2),
+            'Ren. Share 5th Pct (%)':  round(ren_share.quantile(0.05), 2),
+            'Ren. Share 95th Pct (%)': round(ren_share.quantile(0.95), 2),
+            'Prob. Target 81% (%)':    round((ren_share >= 81).mean() * 100, 2),
+            # Generation shares
+            'Low Carbon Share (%)':    round(df['share_low_carbon_gen'].mean() * 100, 2),
+            'Min Non-Ren Share (%)':   round(df['share_min_non_ren'].mean() * 100, 2),
+            # Storage
+            'Battery Out (GWh)':       round(df['battery_out'].mean(), 2),
+            'Pumped Hydro Out (GWh)':  round(df['pumped_hydro_out'].mean(), 2),
+            'Storage Share (%)':       round((df['storage_out'] / df['total_generation']).mean() * 100, 2),
+            # Market
+            'Avg. Price (€/MWh)':      round(df['avg_price'].mean(), 2),
+            'Demand (TWh)':            round((df['total_demand'] / 1e3).mean(), 2),
+            # Welfare
+            'Consumer Surplus (€B)':   round((df['consumer_surplus'] / 1e9).mean(), 2),
+            'Producer Surplus (€B)':   round((df['producer_surplus'] / 1e9).mean(), 2),
+            'Total Cost (€B)':         round((df['total_cost'] / 1e9).mean(), 2),
+            'Net Welfare (€B)':        round((df['net_welfare'] / 1e9).mean(), 2),
+            # Environmental
+            'Emissions (MtCO2)':       round((df['direct_emissions'] / 1e6).mean(), 2),
+            'Solar Curtailment (%)':   round(df['curt_solar_pv'].mean() * 100, 2),
+            'Wind Curtailment (%)':    round(df['curt_wind'].mean() * 100, 2),
+            # Reliability
+            'LOLE Hours':              round(df['lole_hours'].mean(), 2),
+            'EENS (GWh)':              round(df['total_ens'].mean(), 2),
+        }
+        rows.append(row)
+
+    summary_df = pd.DataFrame(rows)
+
+    output_file = TABLES_DIR / "01_main_statistics.csv"
     summary_df.to_csv(output_file, index=False)
     print(f"\n[OK] Main statistics saved to {output_file}")
     print(summary_df.to_string())
-    
+
     return summary_df
 
 
-def generate_main_results_table(all_data):
+def generate_latex_rows(all_data):
     """
-    Generate Table 3: "Main Results by Scenario" for LaTeX replication.
-    
-    Creates the table with these metrics (all as percentages of generation):
-    - Renewable gen. (%)
-    - Low carbon gen. (%)
-    - CC gas gen. (%)
-    - Battery out (%)
-    - Emissions (MtCO2)
-    - Price (€/MWh)
+    Generates a .tex file with all result rows ready to paste into any LaTeX table.
+    No \\midrule separators — add them manually as needed.
+    Covers all metrics computed in calculate_main_statistics.
     """
-    table_data = []
-    
+    rows = []
+
     for scenario_name in SCENARIOS:
         data = all_data.get(scenario_name, {})
-        
         if not data or 'main_results' not in data:
+            print(f"Warning: No main_results data for {scenario_name}")
             continue
-        
+
         df = data['main_results']
-        row = {'Scenario': scenario_name.capitalize()}
-        
-        # Get total generation for percentage calculations
-        total_gen_col = find_column(df, ['total', 'generation']) or find_column(df, ['total', 'gen'])
-        total_gen = df[total_gen_col].mean() if total_gen_col else 1.0
-        
-        # Option 1: Use share columns if available (already in decimal format)
-        share_ren_col = find_column(df, ['share', 'renewable']) or find_column(df, ['renewable', 'share'])
-        if share_ren_col:
-            # Column is in decimal (0-1), convert to percentage
-            row['Renewable gen. (%)'] = df[share_ren_col].mean() * 100
-        else:
-            # Calculate from nominal values
-            ren_col = find_column(df, ['renewable', 'generation']) or find_column(df, ['renewable', 'gen'])
-            if ren_col:
-                row['Renewable gen. (%)'] = (df[ren_col].mean() / total_gen) * 100
-            else:
-                row['Renewable gen. (%)'] = np.nan
-        
-        # Low carbon generation (%) - renewable + nuclear as percentage
-        share_low_carbon_col = find_column(df, ['share', 'low', 'carbon']) or find_column(df, ['low', 'carbon', 'share'])
-        if share_low_carbon_col:
-            row['Low carbon gen. (%)'] = df[share_low_carbon_col].mean() * 100
-        else:
-            # Calculate: renewable + nuclear
-            ren_col = find_column(df, ['renewable', 'generation']) or find_column(df, ['renewable', 'gen'])
-            nuc_col = find_column(df, ['nuclear', 'generation']) or find_column(df, ['nuclear', 'gen'])
-            if ren_col and nuc_col:
-                low_carbon = df[ren_col].mean() + df[nuc_col].mean()
-                row['Low carbon gen. (%)'] = (low_carbon / total_gen) * 100
-            else:
-                row['Low carbon gen. (%)'] = np.nan
-        
-        # CC gas generation (%) - Combined Cycle gas as percentage of total generation
-        # Combined Cycle (CC) uses combined_cycle_gen, not gas_turbine_gen
-        if 'combined_cycle_gen' in df.columns:
-            row['CC gas gen. (%)'] = (df['combined_cycle_gen'].mean() / total_gen) * 100
-        else:
-            row['CC gas gen. (%)'] = np.nan
-        
-        # Battery output (%) - as percentage of total generation
-        batt_col = find_column(df, ['battery', 'output']) or find_column(df, ['battery', 'out'])
-        if batt_col:
-            row['Battery out (%)'] = (df[batt_col].mean() / total_gen) * 100
-        else:
-            row['Battery out (%)'] = np.nan
-        
-        # Emissions (MtCO2) - convert from tonnes to MtCO2
-        emis_col = find_column(df, ['direct', 'emissions']) or find_column(df, ['emissions'])
-        if emis_col:
-            # Assuming the value is in tonnes, convert to MtCO2
-            row['Emissions (MtCO2)'] = df[emis_col].mean() / 1e6
-        else:
-            row['Emissions (MtCO2)'] = np.nan
-        
-        # Price (€/MWh)
-        price_col = find_column(df, ['avg', 'price']) or find_column(df, ['price'])
-        if price_col:
-            row['Price (€/MWh)'] = df[price_col].mean()
-        else:
-            row['Price (€/MWh)'] = np.nan
-        
-        table_data.append(row)
-    
-    main_results_df = pd.DataFrame(table_data)
-    
-    # Save as CSV
-    csv_output = OUTPUT_DIR / "02_main_results_table.csv"
-    main_results_df.to_csv(csv_output, index=False)
-    print(f"\n[OK] Main Results Table saved to {csv_output}")
-    print("\nMain Results by Scenario:")
-    print("="*80)
-    print(main_results_df.to_string(index=False))
-    
-    # Generate LaTeX format
-    latex_output = OUTPUT_DIR / "02_main_results_table.tex"
-    latex_content = generate_latex_table(main_results_df)
-    
-    with open(latex_output, 'w', encoding='utf-8') as f:
-        f.write(latex_content)
-    print(f"\n[OK] LaTeX Table saved to {latex_output}")
-    
-    return main_results_df
+        ren_share = df['share_renewable_gen'] * 100
 
+        row = {
+            'Ren. Share Mean (\\%)':     round(ren_share.mean(), 2),
+            'Ren. Share Std Dev (\\%)':  round(ren_share.std(), 2),
+            'Ren. Share 5th Pct (\\%)':  round(ren_share.quantile(0.05), 2),
+            'Ren. Share 95th Pct (\\%)': round(ren_share.quantile(0.95), 2),
+            'Compliance Prob. $\\ge 81\\%$ (\\%)': round((ren_share >= 81).mean() * 100, 2),
+            'Low Carbon Share (\\%)':    round(df['share_low_carbon_gen'].mean() * 100, 2),
+            'Min Non-Ren Share (\\%)':   round(df['share_min_non_ren'].mean() * 100, 2),
+            'CC Gas Gen. (\\%)':         round((df['combined_cycle_gen'] / df['total_generation']).mean() * 100, 2),
+            'Battery Out (GWh)':         round(df['battery_out'].mean(), 2),
+            'Pumped Hydro Out (GWh)':    round(df['pumped_hydro_out'].mean(), 2),
+            'Storage Share (\\%)':       round((df['storage_out'] / df['total_generation']).mean() * 100, 2),
+            'Avg. Price (\\euro/MWh)':   round(df['avg_price'].mean(), 2),
+            'Demand (TWh)':              round((df['total_demand'] / 1e3).mean(), 2),
+            'Consumer Surplus (\\euro B)': round((df['consumer_surplus'] / 1e9).mean(), 2),
+            'Producer Surplus (\\euro B)': round((df['producer_surplus'] / 1e9).mean(), 2),
+            'Total Cost (\\euro B)':       round((df['total_cost'] / 1e9).mean(), 2),
+            'Net Welfare (\\euro B)':      round((df['net_welfare'] / 1e9).mean(), 2),
+            'Emissions (MtCO$_2$)':      round(df['direct_emissions'].mean(), 2),
+            'Solar Curtailment (\\%)':   round(df['curt_solar_pv'].mean() * 100, 2),
+            'Wind Curtailment (\\%)':    round(df['curt_wind'].mean() * 100, 2),
+            'LOLE (hours)':              round(df['lole_hours'].mean(), 2),
+            'EENS (GWh)':                round(df['total_ens'].mean(), 2),
+        }
+        rows.append(row)
 
-def generate_latex_table(df):
-    """
-    Generate LaTeX table code from DataFrame.
-    Matches the style from the paper.
-    """
-    scenarios = df['Scenario'].tolist()
-    scenario_abbr = {
-        'Baseline': 'Base.',
-        'Nuclear': 'Nucl.',
-        'Optimistic': 'Opt.',
-        'Climate change': 'Clim.',
-        'No batteries': 'No Batt.'
-    }
-    
-    latex = r"""\begin{center}
-    \vspace{-0.25cm}
-    \captionsetup{type=table}
-    \caption{Main Results by Scenario}
-    \label{tab:main_results}
-    \small 
-    \begin{tabular}{lcccc}
-        \toprule
-        \textbf{Variable} & """
-    
-    # Header with scenario abbreviations
-    for scenario in scenarios:
-        abbr = scenario_abbr.get(scenario, scenario[:6])
-        latex += f"\n        \\textbf{{{abbr}}} & " if scenario != scenarios[-1] else f"\n        \\textbf{{{abbr}}} \\\\\n"
-    
-    latex += "        \\midrule\n"
-    
-    # Data rows
-    metrics = [col for col in df.columns if col != 'Scenario']
+    # Build LaTeX lines
+    metrics   = list(rows[0].keys())
+    scenarios = [r['Scenario'] for r in rows] if 'Scenario' in rows[0] else SCENARIOS
+
+    lines = []
     for metric in metrics:
-        latex += f"        {metric} & "
-        values = []
-        for idx, scenario in enumerate(scenarios):
-            val = df[df['Scenario'] == scenario][metric].values[0]
-            if pd.isna(val):
-                values.append("-")
-            else:
-                # Format based on metric type
-                if 'Emissions' in metric:
-                    values.append(f"{val:.1f}")
-                elif 'Price' in metric:
-                    values.append(f"{val:.1f}")
-                else:
-                    values.append(f"{val:.1f}")
-            
-            if idx < len(scenarios) - 1:
-                latex += values[-1] + " & "
-            else:
-                latex += values[-1] + " \\\\\n"
-    
-    latex += r"""        \bottomrule
-    \end{tabular}
-    \vspace{-0.25cm}
-    \caption*{\footnotesize \textit{Note:} Figures represent averages across 10,000 Monte Carlo simulations per scenario. Low carbon includes renewable sources plus nuclear generation.}
-\end{center}"""
-    
-    return latex
+        values = ' & '.join(
+            '-' if pd.isna(row.get(metric)) else f'{row.get(metric, 0):.2f}'
+            for row in rows
+        )
+        lines.append(f'        {metric} & {values} \\\\')
 
+    output = '\n'.join(lines)
 
-def print_scenario_details(all_data):
-    """Print detailed statistics for each scenario."""
-    print("\n" + "="*80)
-    print("DETAILED SCENARIO STATISTICS")
-    print("="*80)
-    
-    for scenario_name in SCENARIOS:
-        data = all_data.get(scenario_name, {})
-        if not data or 'main_results' not in data:
-            continue
-        
-        df = data['main_results']
-        print(f"\n{scenario_name.upper()}")
-        print("-" * 40)
-        print(df.describe())
+    latex_output = TABLES_DIR / "01_all_results_rows.tex"
+    with open(latex_output, 'w', encoding='utf-8') as f:
+        f.write(output)
+    print(f"[OK] All LaTeX result rows saved to {latex_output}")
+
+    return output
 
 
 # ============================================================================
@@ -435,162 +248,117 @@ def print_scenario_details(all_data):
 # ============================================================================
 
 def analyze_renewable_share_distributions(all_data):
-    """
-    Analyze and plot the distribution of renewable share across scenarios.
-    Replicates Figure 1 from the paper.
-    """
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
     axes = axes.flatten()
+
+    # Compute global x range across all scenarios
+    all_shares = []
+    for scenario_name in SCENARIOS:
+        data = all_data.get(scenario_name, {})
+        if data and 'main_results' in data:
+            all_shares.append(data['main_results']['share_renewable_gen'] * 100)
     
+    xlim = None
+    if all_shares:
+        combined = pd.concat(all_shares)
+        x_min, x_max = combined.min(), combined.max()
+        margin = (x_max - x_min) * 0.05
+        xlim = (x_min - margin, x_max + margin)
+
     for idx, scenario_name in enumerate(SCENARIOS):
         data = all_data.get(scenario_name, {})
         if not data or 'main_results' not in data:
             continue
-        
+
         df = data['main_results']
-        
-        # Try to find renewable share column (should be in decimal format 0-1)
-        share_col = find_column(df, ['share', 'renewable']) or find_column(df, ['renewable', 'share'])
-        
-        if share_col:
-            # Column is already in decimal (0-1), convert to percentage
-            ren_share = df[share_col] * 100
-        else:
-            # Try calculating from nominal values
-            ren_col = find_column(df, ['renewable', 'generation']) or find_column(df, ['renewable', 'gen'])
-            total_col = find_column(df, ['total', 'generation']) or find_column(df, ['total', 'gen'])
-            
-            if ren_col and total_col:
-                ren_share = (df[ren_col] / df[total_col]) * 100
-            else:
-                print(f"Warning: No renewable share column found in {scenario_name}")
-                continue
-        
-        ax = axes[idx]
-        ax.hist(ren_share, bins=50, color=COLORS.get(scenario_name, '#1f77b4'), 
-                alpha=0.7, edgecolor='black')
-        ax.axvline(ren_share.mean(), color='red', linestyle='--', linewidth=2, 
-                   label=f'Mean: {ren_share.mean():.1f}%')
-        ax.axvline(81, color='green', linestyle='--', linewidth=2, 
-                   label='Target: 81%')
-        ax.set_xlabel('Renewable Share (%)')
-        ax.set_ylabel('Frequency')
-        ax.set_title(f'{scenario_name.capitalize()}')
-        ax.legend()
-        ax.grid(alpha=0.3)
-    
-    # Remove extra subplot
+        ren_share = df['share_renewable_gen'] * 100
+
+        def _plot(ax):
+            ax.hist(ren_share, bins=50, color=COLORS.get(scenario_name, '#1f77b4'),
+                    alpha=0.7, edgecolor='black')
+            ax.axvline(ren_share.mean(), color='red', linestyle='--', linewidth=2,
+                       label=f'Mean: {ren_share.mean():.1f}%')
+            ax.axvline(81, color='green', linestyle='--', linewidth=2, label='Target: 81%')
+            if xlim:
+                ax.set_xlim(xlim)
+            ax.set_xlabel('Renewable Share (%)')
+            ax.set_ylabel('Frequency')
+            ax.set_title(scenario_name.capitalize())
+            ax.legend()
+            ax.grid(alpha=0.3)
+
+        _plot(axes[idx])
+
+        fig_ind, ax_ind = plt.subplots(figsize=(5.5, 4.5))
+        _plot(ax_ind)
+        fig_ind.tight_layout()
+        fig_ind.savefig(GRAPHS_DIR / f"03_renewable_share_{scenario_name.replace(' ', '_')}.png",
+                        dpi=300, bbox_inches='tight')
+        plt.close(fig_ind)
+
     fig.delaxes(axes[-1])
-    
-    plt.suptitle('Distribution of Renewable Share Across Scenarios', 
-                 fontsize=14, fontweight='bold')
     plt.tight_layout()
-    
-    output_file = OUTPUT_DIR / "03_renewable_share_distributions.png"
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"[OK] Renewable share distributions saved to {output_file}")
-    plt.close()
+    fig.savefig(GRAPHS_DIR / "03_renewable_share_distributions.png", dpi=300, bbox_inches='tight')
+    plt.close(fig)
+    print(f"[OK] Renewable share distributions saved to {OUTPUT_DIR}")
 
-    # Individual plots
-    for scenario_name in SCENARIOS:
-        data = all_data.get(scenario_name, {})
-        if not data or 'main_results' not in data:
-            continue
-        df = data['main_results']
-        share_col = find_column(df, ['share', 'renewable']) or find_column(df, ['renewable', 'share'])
-        if share_col:
-            ren_share = df[share_col] * 100
-        else:
-            ren_col = find_column(df, ['renewable', 'generation']) or find_column(df, ['renewable', 'gen'])
-            total_col = find_column(df, ['total', 'generation']) or find_column(df, ['total', 'gen'])
-            if ren_col and total_col:
-                ren_share = (df[ren_col] / df[total_col]) * 100
-            else:
-                continue
-        
-        plt.figure(figsize=(5.5, 4.5))
-        plt.hist(ren_share, bins=50, color=COLORS.get(scenario_name, '#1f77b4'), alpha=0.7, edgecolor='black')
-        plt.axvline(ren_share.mean(), color='red', linestyle='--', linewidth=2, label=f'Mean: {ren_share.mean():.1f}%')
-        plt.axvline(81, color='green', linestyle='--', linewidth=2, label='Target: 81%')
-        plt.xlabel('Renewable Share (%)')
-        plt.ylabel('Frequency')
-        plt.title(f'{scenario_name.capitalize()}')
-        plt.legend()
-        plt.grid(alpha=0.3)
-        plt.tight_layout()
-        ind_output = OUTPUT_DIR / f"03_renewable_share_{scenario_name.replace(' ', '_')}.png"
-        plt.savefig(ind_output, dpi=300, bbox_inches='tight')
-        plt.close()
-
+HISTORICAL_AVG_PRICE = 93.07  # €/MWh, Spain historical average 2020-2024
 
 def analyze_price_distributions(all_data):
-    """
-    Analyze and plot the distribution of average prices across scenarios.
-    Replicates Figure 3 from the paper.
-    """
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
     axes = axes.flatten()
-    
+
+    # Compute global x range across all scenarios
+    all_prices = []
+    for scenario_name in SCENARIOS:
+        data = all_data.get(scenario_name, {})
+        if data and 'main_results' in data:
+            all_prices.append(data['main_results']['avg_price'])
+
+    xlim = None
+    if all_prices:
+        combined = pd.concat(all_prices)
+        x_min, x_max = combined.min(), combined.max()
+        margin = (x_max - x_min) * 0.05
+        xlim = (x_min - margin, x_max + margin)
+
     for idx, scenario_name in enumerate(SCENARIOS):
         data = all_data.get(scenario_name, {})
         if not data or 'main_results' not in data:
             continue
-        
-        df = data['main_results']
-        price_col = find_column(df, ['avg', 'price']) or find_column(df, ['price'])
-        
-        if not price_col:
-            print(f"Warning: No price column found in {scenario_name}")
-            continue
-        
-        prices = df[price_col]
-        
-        ax = axes[idx]
-        ax.hist(prices, bins=50, color=COLORS.get(scenario_name, '#1f77b4'), 
-                alpha=0.7, edgecolor='black')
-        ax.axvline(prices.mean(), color='red', linestyle='--', linewidth=2, 
-                   label=f'Mean: €{prices.mean():.1f}/MWh')
-        ax.set_xlabel('Average Price (€/MWh)')
-        ax.set_ylabel('Frequency')
-        ax.set_title(f'{scenario_name.capitalize()}')
-        ax.legend()
-        ax.grid(alpha=0.3)
-    
-    # Remove extra subplot
-    fig.delaxes(axes[-1])
-    
-    plt.suptitle('Distribution of Average Prices Across Scenarios', 
-                 fontsize=14, fontweight='bold')
-    plt.tight_layout()
-    
-    output_file = OUTPUT_DIR / "04_price_distributions.png"
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"[OK] Price distributions saved to {output_file}")
-    plt.close()
 
-    # Individual plots
-    for scenario_name in SCENARIOS:
-        data = all_data.get(scenario_name, {})
-        if not data or 'main_results' not in data:
-            continue
         df = data['main_results']
-        price_col = find_column(df, ['avg', 'price']) or find_column(df, ['price'])
-        if not price_col:
-            continue
-        prices = df[price_col]
-        
-        plt.figure(figsize=(5.5, 4.5))
-        plt.hist(prices, bins=50, color=COLORS.get(scenario_name, '#1f77b4'), alpha=0.7, edgecolor='black')
-        plt.axvline(prices.mean(), color='red', linestyle='--', linewidth=2, label=f'Mean: €{prices.mean():.1f}/MWh')
-        plt.xlabel('Average Price (€/MWh)')
-        plt.ylabel('Frequency')
-        plt.title(f'{scenario_name.capitalize()}')
-        plt.legend()
-        plt.grid(alpha=0.3)
-        plt.tight_layout()
-        ind_output = OUTPUT_DIR / f"04_price_distributions_{scenario_name.replace(' ', '_')}.png"
-        plt.savefig(ind_output, dpi=300, bbox_inches='tight')
-        plt.close()
+        prices = df['avg_price']
+
+        def _plot(ax):
+            ax.hist(prices, bins=50, color=COLORS.get(scenario_name, '#1f77b4'),
+                    alpha=0.7, edgecolor='black')
+            ax.axvline(prices.mean(), color='red', linestyle='--', linewidth=2,
+                       label=f'Mean: €{prices.mean():.1f}/MWh')
+            ax.axvline(HISTORICAL_AVG_PRICE, color='orange', linestyle=':', linewidth=2,
+                       label=f'Historical avg. (2020–24): €{HISTORICAL_AVG_PRICE}/MWh')
+            if xlim:
+                ax.set_xlim(xlim)
+            ax.set_xlabel('Average Price (€/MWh)')
+            ax.set_ylabel('Frequency')
+            ax.set_title(scenario_name.capitalize())
+            ax.legend()
+            ax.grid(alpha=0.3)
+
+        _plot(axes[idx])
+
+        fig_ind, ax_ind = plt.subplots(figsize=(5.5, 4.5))
+        _plot(ax_ind)
+        fig_ind.tight_layout()
+        fig_ind.savefig(GRAPHS_DIR / f"04_price_distributions_{scenario_name.replace(' ', '_')}.png",
+                        dpi=300, bbox_inches='tight')
+        plt.close(fig_ind)
+
+    fig.delaxes(axes[-1])
+    plt.tight_layout()
+    fig.savefig(GRAPHS_DIR / "04_price_distributions.png", dpi=300, bbox_inches='tight')
+    plt.close(fig)
+    print(f"[OK] Price distributions saved to {OUTPUT_DIR}")
 
 
 # ============================================================================
@@ -599,70 +367,69 @@ def analyze_price_distributions(all_data):
 
 def analyze_hourly_profiles(all_data):
     """
-    Analyze hourly emissions and prices by hour of day.
-    Replicates Figure from paper showing hourly patterns.
+    Hourly price and emissions profiles by scenario.
     """
-    fig1, ax_price = plt.subplots(figsize=(5.5, 4.5))
+    fig1, ax_price     = plt.subplots(figsize=(5.5, 4.5))
     fig2, ax_emissions = plt.subplots(figsize=(5.5, 4.5))
-    
-    # Prepare data for hourly analysis
+
     for scenario_name in SCENARIOS:
         data = all_data.get(scenario_name, {})
         if not data or 'hourly_profiles' not in data:
             continue
-        
+
         df = data['hourly_profiles']
-        
-        # Group by hour and calculate statistics
-        if 'hour' in df.columns:
-            hourly_stats = df.groupby('hour').agg({
-                'price': ['mean', 'std'],
-                'emissions': ['mean', 'std']
-            })
-        else:
-            # If no hour column, assume data is ordered hourly for a year
-            # Create hour column (0-23 repeating)
+
+        if 'hour' not in df.columns:
             df['hour'] = (df.index % 8760) % 24
-            hourly_stats = df.groupby('hour').agg({
-                'price': ['mean', 'std'] if 'price' in df.columns else [],
-                'emissions': ['mean', 'std'] if 'emissions' in df.columns else []
-            })
-        
-        hours = hourly_stats.index
-        
-        # Plot prices
-        if 'price' in hourly_stats.columns:
-            prices = hourly_stats['price']['mean']
-            ax_price.plot(hours, prices, label=scenario_name.capitalize(), 
-                   color=COLORS.get(scenario_name, '#1f77b4'), linewidth=2)
-        
-        # Plot emissions
-        if 'emissions' in hourly_stats.columns:
-            emissions = hourly_stats['emissions']['mean']
-            ax_emissions.plot(hours, emissions, label=scenario_name.capitalize(), 
-                   color=COLORS.get(scenario_name, '#1f77b4'), linewidth=2)
-    
+
+        hourly = df.groupby('hour')[['price', 'emissions']].mean()
+
+        ax_price.plot(hourly.index, hourly['price'],
+                      label=scenario_name.capitalize(),
+                      color=COLORS.get(scenario_name, '#1f77b4'),
+                      linewidth=2, marker='o', markersize=4)
+
+        ax_emissions.plot(hourly.index, hourly['emissions'],
+                          label=scenario_name.capitalize(),
+                          color=COLORS.get(scenario_name, '#1f77b4'),
+                          linewidth=2, marker='o', markersize=4)
+
     ax_price.set_xlabel('Hour of Day')
     ax_price.set_ylabel('Average Price (€/MWh)')
     ax_price.set_title('Hourly Price Profile')
+    ax_price.set_xticks(range(0, 24, 2))
     ax_price.legend()
     ax_price.grid(alpha=0.3)
-    ax_price.set_xticks(range(0, 24, 2))
     fig1.tight_layout()
-    output_file1 = OUTPUT_DIR / "05_hourly_profiles_price.png"
-    fig1.savefig(output_file1, dpi=300, bbox_inches='tight')
+    fig1.savefig(GRAPHS_DIR / '05_hourly_profiles_price.png', dpi=300, bbox_inches='tight')
     plt.close(fig1)
-    
+
     ax_emissions.set_xlabel('Hour of Day')
     ax_emissions.set_ylabel('Average Emissions (tCO2/MWh)')
     ax_emissions.set_title('Hourly Emissions Profile')
+    ax_emissions.set_xticks(range(0, 24, 2))
     ax_emissions.legend()
     ax_emissions.grid(alpha=0.3)
-    ax_emissions.set_xticks(range(0, 24, 2))
     fig2.tight_layout()
-    output_file2 = OUTPUT_DIR / "05_hourly_profiles_emissions.png"
-    fig2.savefig(output_file2, dpi=300, bbox_inches='tight')
+    fig2.savefig(GRAPHS_DIR / '05_hourly_profiles_emissions.png', dpi=300, bbox_inches='tight')
     plt.close(fig2)
+
+    # CSV export: hourly price per scenario (one row per hour, one col per scenario)
+    price_rows = []
+    for scenario_name in SCENARIOS:
+        data = all_data.get(scenario_name, {})
+        if not data or 'hourly_profiles' not in data:
+            continue
+        df = data['hourly_profiles'].copy()
+        if 'hour' not in df.columns:
+            df['hour'] = (df.index % 8760) % 24
+        s = df.groupby('hour')['price'].mean()
+        s.name = scenario_name
+        price_rows.append(s)
+    if price_rows:
+        df_out = pd.concat(price_rows, axis=1)
+        df_out.index.name = 'hour'
+        df_out.to_csv(TABLES_DIR / '05_hourly_profiles_price.csv')
     print(f"[OK] Hourly profiles saved to {OUTPUT_DIR}")
 
 # ============================================================================
@@ -671,50 +438,37 @@ def analyze_hourly_profiles(all_data):
 
 def analyze_monthly_profiles(all_data):
     """
-    Analyze monthly emissions and prices by month.
-    Replicates monthly emissions figure from paper.
+    Monthly price and emissions profiles by scenario.
     """
-    fig1, ax_price = plt.subplots(figsize=(5.5, 4.5))
+    fig1, ax_price     = plt.subplots(figsize=(5.5, 4.5))
     fig2, ax_emissions = plt.subplots(figsize=(5.5, 4.5))
-    
-    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    
-    # Prepare data for monthly analysis
+
     for scenario_name in SCENARIOS:
         data = all_data.get(scenario_name, {})
         if not data or 'monthly_profiles' not in data:
             continue
-        
+
         df = data['monthly_profiles']
-        
-        # Group by month and calculate mean
+
         if 'month' in df.columns:
-            monthly_stats = df.groupby('month').mean()
+            monthly = df.groupby('month')[['price', 'emissions']].mean()
         else:
-            # If no month column, assume first 12 rows are months
-            if len(df) >= 12:
-                monthly_stats = df.iloc[:12].reset_index(drop=True)
-                monthly_stats.index = range(1, 13)
-            else:
-                continue
-        
-        months_idx = monthly_stats.index if 'month' in df.columns else range(1, len(monthly_stats) + 1)
-        
-        # Plot prices
-        if 'price' in monthly_stats.columns or 'avg_price' in monthly_stats.columns:
-            price_col = 'price' if 'price' in monthly_stats.columns else 'avg_price'
-            prices = monthly_stats[price_col]
-            ax_price.plot(months_idx, prices, label=scenario_name.capitalize(), 
-                   color=COLORS.get(scenario_name, '#1f77b4'), linewidth=2, marker='o')
-        
-        # Plot emissions
-        if 'emissions' in monthly_stats.columns or 'avg_emissions' in monthly_stats.columns:
-            emissions_col = 'emissions' if 'emissions' in monthly_stats.columns else 'avg_emissions'
-            emissions = monthly_stats[emissions_col]
-            ax_emissions.plot(months_idx, emissions, label=scenario_name.capitalize(), 
-                   color=COLORS.get(scenario_name, '#1f77b4'), linewidth=2, marker='o')
-    
+            monthly = df.iloc[:12].reset_index(drop=True)
+            monthly.index = range(1, 13)
+
+        ax_price.plot(monthly.index, monthly['price'],
+                      label=scenario_name.capitalize(),
+                      color=COLORS.get(scenario_name, '#1f77b4'),
+                      linewidth=2, marker='o', markersize=4)
+
+        ax_emissions.plot(monthly.index, monthly['emissions'],
+                          label=scenario_name.capitalize(),
+                          color=COLORS.get(scenario_name, '#1f77b4'),
+                          linewidth=2, marker='o', markersize=4)
+
     ax_price.set_xlabel('Month')
     ax_price.set_ylabel('Average Price (€/MWh)')
     ax_price.set_title('Monthly Price Profile')
@@ -723,10 +477,9 @@ def analyze_monthly_profiles(all_data):
     ax_price.legend()
     ax_price.grid(alpha=0.3)
     fig1.tight_layout()
-    output_file1 = OUTPUT_DIR / "06_monthly_profiles_price.png"
-    fig1.savefig(output_file1, dpi=300, bbox_inches='tight')
+    fig1.savefig(GRAPHS_DIR / '06_monthly_profiles_price.png', dpi=300, bbox_inches='tight')
     plt.close(fig1)
-    
+
     ax_emissions.set_xlabel('Month')
     ax_emissions.set_ylabel('Average Emissions (tCO2/MWh)')
     ax_emissions.set_title('Monthly Emissions Profile')
@@ -735,296 +488,604 @@ def analyze_monthly_profiles(all_data):
     ax_emissions.legend()
     ax_emissions.grid(alpha=0.3)
     fig2.tight_layout()
-    output_file2 = OUTPUT_DIR / "06_monthly_profiles_emissions.png"
-    fig2.savefig(output_file2, dpi=300, bbox_inches='tight')
+    fig2.savefig(GRAPHS_DIR / '06_monthly_profiles_emissions.png', dpi=300, bbox_inches='tight')
     plt.close(fig2)
+
+    # CSV export: monthly price per scenario (one row per month, one col per scenario)
+    price_rows = []
+    for scenario_name in SCENARIOS:
+        data = all_data.get(scenario_name, {})
+        if not data or 'monthly_profiles' not in data:
+            continue
+        df = data['monthly_profiles']
+        s = df.groupby('month')['price'].mean() if 'month' in df.columns \
+            else pd.Series(df['price'].iloc[:12].values, index=range(1, 13))
+        s.name = scenario_name
+        price_rows.append(s)
+    if price_rows:
+        df_out = pd.concat(price_rows, axis=1)
+        df_out.index = ['Jan','Feb','Mar','Apr','May','Jun',
+                        'Jul','Aug','Sep','Oct','Nov','Dec']
+        df_out.index.name = 'month'
+        df_out.to_csv(TABLES_DIR / '06_monthly_profiles_price.csv')
     print(f"[OK] Monthly profiles saved to {OUTPUT_DIR}")
+
+
+# ============================================================================
+# COMBINED PROFILE FIGURES (grouped by price / by emissions)
+# ============================================================================
+
+def analyze_combined_profiles(all_data):
+    """
+    Two combined figures:
+      - Price combined:     hourly price (top) + monthly price (bottom)
+      - Emissions combined: hourly emissions (top) + monthly emissions (bottom)
+    """
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    fig_price, (ax_hp, ax_mp) = plt.subplots(2, 1, figsize=(5.5, 8))
+    fig_emis,  (ax_he, ax_me) = plt.subplots(2, 1, figsize=(5.5, 8))
+
+    for scenario_name in SCENARIOS:
+        data  = all_data.get(scenario_name, {})
+        color = COLORS.get(scenario_name, '#1f77b4')
+        kw    = dict(label=scenario_name.capitalize(), color=color,
+                     linewidth=2, marker='o', markersize=4)
+
+        # Hourly rows
+        if data and 'hourly_profiles' in data:
+            df = data['hourly_profiles'].copy()
+            if 'hour' not in df.columns:
+                df['hour'] = (df.index % 8760) % 24
+            hourly = df.groupby('hour')[['price', 'emissions']].mean()
+            ax_hp.plot(hourly.index, hourly['price'],     **kw)
+            ax_he.plot(hourly.index, hourly['emissions'], **kw)
+
+        # Monthly rows
+        if data and 'monthly_profiles' in data:
+            df = data['monthly_profiles']
+            if 'month' in df.columns:
+                monthly = df.groupby('month')[['price', 'emissions']].mean()
+            else:
+                monthly = df.iloc[:12].reset_index(drop=True)
+                monthly.index = range(1, 13)
+            ax_mp.plot(monthly.index, monthly['price'],     **kw)
+            ax_me.plot(monthly.index, monthly['emissions'], **kw)
+
+    # Price combined formatting
+    ax_hp.set_xlabel('Hour of Day', fontsize=12)
+    ax_hp.set_ylabel('Average Price (€/MWh)', fontsize=12)
+    ax_hp.set_title('Hourly Price Profile', fontsize=13)
+    ax_hp.set_xticks(range(0, 24, 2))
+    ax_hp.tick_params(labelsize=10)
+    ax_hp.legend(fontsize=10)
+    ax_hp.grid(alpha=0.3)
+
+    ax_mp.set_xlabel('Month', fontsize=12)
+    ax_mp.set_ylabel('Average Price (€/MWh)', fontsize=12)
+    ax_mp.set_title('Monthly Price Profile', fontsize=13)
+    ax_mp.set_xticks(range(1, 13))
+    ax_mp.set_xticklabels(months, rotation=45)
+    ax_mp.tick_params(labelsize=10)
+    ax_mp.legend(fontsize=10)
+    ax_mp.grid(alpha=0.3)
+
+    fig_price.tight_layout()
+    fig_price.savefig(GRAPHS_DIR / '05_06_price_profiles_combined.png', dpi=300, bbox_inches='tight')
+    plt.close(fig_price)
+
+    # Emissions combined formatting
+    ax_he.set_xlabel('Hour of Day', fontsize=12)
+    ax_he.set_ylabel('Average Emissions (tCO2/MWh)', fontsize=12)
+    ax_he.set_title('Hourly Emissions Profile', fontsize=13)
+    ax_he.set_xticks(range(0, 24, 2))
+    ax_he.tick_params(labelsize=10)
+    ax_he.legend(fontsize=10)
+    ax_he.grid(alpha=0.3)
+
+    ax_me.set_xlabel('Month', fontsize=12)
+    ax_me.set_ylabel('Average Emissions (tCO2/MWh)', fontsize=12)
+    ax_me.set_title('Monthly Emissions Profile', fontsize=13)
+    ax_me.set_xticks(range(1, 13))
+    ax_me.set_xticklabels(months, rotation=45)
+    ax_me.tick_params(labelsize=10)
+    ax_me.legend(fontsize=10)
+    ax_me.grid(alpha=0.3)
+
+    fig_emis.tight_layout()
+    fig_emis.savefig(GRAPHS_DIR / '05_06_emissions_profiles_combined.png', dpi=300, bbox_inches='tight')
+    plt.close(fig_emis)
+    print(f"[OK] Combined price and emissions profiles saved to {OUTPUT_DIR}")
+
+
+# ============================================================================
+# GENERATION MIX PROFILES (HOURLY & MONTHLY — ALL SCENARIOS)
+# ============================================================================
+
+GEN_COLS = {
+    'Solar PV':            ('solar_pv',  '#FFA500'),
+    'Wind':                ('wind',      '#5F9EA0'),
+    'Conventional Hydro':  ('conv_hydro','#4169E1'),
+    'Combined Cycle':      ('ccgt',      '#E74C3C'),
+    'Cogeneration':        ('cogen',     '#DC143C'),
+    'Nuclear':             ('nuclear',   '#FFD700'),
+    'Battery':             ('batt_out',  '#9370DB'),
+    'Pumped Hydro':        ('ph_out',    '#4682B4'),
+    'Other Renewable':     (None,        '#32CD32'),
+    'Other Non-Renewable': (None,        '#FF8C00'),
+}
+
+def _build_generation_hourly(df):
+    """Return mean-by-hour DataFrame with residual Other columns."""
+    if 'hour' not in df.columns:
+        df = df.copy()
+        df['hour'] = (df.index % 8760) % 24
+    hourly = df.groupby('hour')[['solar_pv', 'wind', 'conv_hydro', 'ccgt',
+                                  'cogen', 'nuclear', 'batt_out', 'ph_out',
+                                  'ren_gen', 'non_ren_gen']].mean()
+    hourly['Other Renewable']     = (hourly['ren_gen']
+                                     - hourly['solar_pv']
+                                     - hourly['wind']
+                                     - hourly['conv_hydro']).clip(lower=0)
+    hourly['Other Non-Renewable'] = (hourly['non_ren_gen']
+                                     - hourly['ccgt']
+                                     - hourly['nuclear']
+                                     - hourly['cogen']).clip(lower=0)
+    return hourly
+
+def _build_generation_monthly(df):
+    """Return mean-by-month DataFrame with residual Other columns.
+    Expects a monthly_profiles DataFrame which already has a 'month' column.
+    """
+    if 'month' not in df.columns:
+        raise ValueError("monthly_profiles must contain a 'month' column")
+    monthly = df.groupby('month')[['solar_pv', 'wind', 'conv_hydro', 'ccgt',
+                                    'cogen', 'nuclear', 'batt_out', 'ph_out',
+                                    'ren_gen', 'non_ren_gen']].mean()
+    monthly['Other Renewable']     = (monthly['ren_gen']
+                                      - monthly['solar_pv']
+                                      - monthly['wind']
+                                      - monthly['conv_hydro']).clip(lower=0)
+    monthly['Other Non-Renewable'] = (monthly['non_ren_gen']
+                                      - monthly['ccgt']
+                                      - monthly['nuclear']
+                                      - monthly['cogen']).clip(lower=0)
+    return monthly
+
+def _plot_generation_mix_grid(all_data, build_fn, xlabel, xticks_fn, filename,
+                               data_key='hourly_profiles', xticklabels=None):
+    """
+    2×3 grid of stacked area charts (one per scenario, 6th cell = shared legend).
+    build_fn: callable(df) → aggregated DataFrame
+    xticks_fn: callable(ax) to set xticks
+    """
+    fig, axes = plt.subplots(2, 3, figsize=(16, 9))
+    axes = axes.flatten()
+
+    for idx, scenario_name in enumerate(SCENARIOS):
+        ax = axes[idx]
+        data = all_data.get(scenario_name, {})
+        if not data or data_key not in data:
+            ax.set_visible(False)
+            continue
+
+        agg = build_fn(data[data_key].copy())
+
+        stack_data, stack_labels, stack_colors = [], [], []
+        for tech, (col, color) in GEN_COLS.items():
+            series = agg[tech] if col is None else agg[col]
+            stack_data.append(series.values)
+            stack_labels.append(tech)
+            stack_colors.append(color)
+
+        ax.stackplot(agg.index, stack_data, labels=stack_labels,
+                     colors=stack_colors, alpha=0.85)
+        ax.set_title(scenario_name.capitalize())
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel('Mean Generation (GWh)')
+        xticks_fn(ax)
+        ax.grid(alpha=0.3)
+
+    # 6th cell: shared legend
+    ax_leg = axes[5]
+    ax_leg.set_visible(False)
+    handles = [plt.Rectangle((0, 0), 1, 1, color=c, alpha=0.85)
+               for _, (_, c) in GEN_COLS.items()]
+    labels  = list(GEN_COLS.keys())
+    fig.legend(handles, labels, loc='lower right',
+               bbox_to_anchor=(0.98, 0.05), ncol=2, fontsize=9,
+               framealpha=0.95, title='Technology', title_fontsize=10)
+
+    fig.tight_layout()
+    fig.savefig(GRAPHS_DIR / filename, dpi=300, bbox_inches='tight')
+    plt.close(fig)
+
+
+def analyze_hourly_generation_mix(all_data):
+    """Hourly generation mix stacked area — 2×3 grid, one panel per scenario."""
+    _plot_generation_mix_grid(
+        all_data,
+        build_fn   = _build_generation_hourly,
+        xlabel     = 'Hour of Day',
+        xticks_fn  = lambda ax: ax.set_xticks(range(0, 24, 4)),
+        filename   = '07_hourly_generation_mix.png',
+    )
+    print(f"[OK] Hourly generation mix saved to {OUTPUT_DIR}")
+
+
+def analyze_monthly_generation_mix(all_data):
+    """Monthly generation mix stacked area — 2×3 grid, one panel per scenario."""
+    MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    def set_month_ticks(ax):
+        ax.set_xticks(range(1, 13))
+        ax.set_xticklabels(MONTHS, rotation=45, fontsize=8)
+
+    _plot_generation_mix_grid(
+        all_data,
+        build_fn   = _build_generation_monthly,
+        xlabel     = 'Month',
+        xticks_fn  = set_month_ticks,
+        filename   = '10_monthly_generation_mix.png',
+        data_key   = 'monthly_profiles',
+    )
+
+    # CSV export
+    rows = []
+    for scenario_name in SCENARIOS:
+        data = all_data.get(scenario_name, {})
+        if not data or 'monthly_profiles' not in data:
+            continue
+        agg = _build_generation_monthly(data['monthly_profiles'].copy())
+        for month_idx in agg.index:
+            row = {'scenario': scenario_name, 'month': MONTHS[month_idx - 1]}
+            for tech, (col, _) in GEN_COLS.items():
+                row[tech] = agg.loc[month_idx, tech if col is None else col]
+            rows.append(row)
+
+    if rows:
+        df_out = pd.DataFrame(rows).set_index(['scenario', 'month'])
+        df_out.to_csv(TABLES_DIR / '10_monthly_generation_mix.csv')
+    print(f"[OK] Monthly generation mix saved to {OUTPUT_DIR}")
+
+
+def analyze_hourly_storage(all_data):
+    """
+    Hourly storage charge/discharge profiles for all scenarios.
+    Charge shown as negative, discharge as positive.
+    Saves two separate figures: one for batteries, one for pumped hydro.
+    """
+    fig_batt, ax_batt = plt.subplots(figsize=(7, 5))
+    fig_ph,   ax_ph   = plt.subplots(figsize=(7, 5))
+
+    for scenario_name in SCENARIOS:
+        data = all_data.get(scenario_name, {})
+        if not data or 'hourly_profiles' not in data:
+            continue
+
+        df = data['hourly_profiles'].copy()
+        if 'hour' not in df.columns:
+            df['hour'] = (df.index % 8760) % 24
+
+        hourly = df.groupby('hour')[
+            ['batt_in', 'batt_out', 'ph_in', 'ph_out']
+        ].mean()
+
+        color = COLORS.get(scenario_name, '#1f77b4')
+        label = scenario_name.capitalize()
+
+        # Battery
+        ax_batt.plot(hourly.index,  hourly['batt_out'],
+                     color=color, linewidth=2, marker='o', markersize=4, label=f'{label} (out)')
+        ax_batt.plot(hourly.index, -hourly['batt_in'],
+                     color=color, linewidth=2, marker='o', markersize=4,
+                     linestyle='--', alpha=0.6, label=f'{label} (charge)')
+
+        # Pumped hydro
+        ax_ph.plot(hourly.index,  hourly['ph_out'],
+                   color=color, linewidth=2, marker='o', markersize=4, label=f'{label} (out)')
+        ax_ph.plot(hourly.index, -hourly['ph_in'],
+                   color=color, linewidth=2, marker='o', markersize=4,
+                   linestyle='--', alpha=0.6, label=f'{label} (pumping)')
+
+    for ax, ylabel in [
+        (ax_batt, 'Mean GWh (+ discharge / − charge)'),
+        (ax_ph,   'Mean GWh (+ generation / − pumping)'),
+    ]:
+        ax.axhline(0, color='black', linewidth=0.8, linestyle='-')
+        ax.set_xlabel('Hour of Day')
+        ax.set_ylabel(ylabel)
+        ax.set_xticks(range(0, 24, 2))
+        ax.legend(fontsize=7, ncol=2)
+        ax.grid(alpha=0.3)
+
+    fig_batt.tight_layout()
+    fig_batt.savefig(GRAPHS_DIR / '08_hourly_storage_battery.png', dpi=300, bbox_inches='tight')
+    plt.close(fig_batt)
+
+    fig_ph.tight_layout()
+    fig_ph.savefig(GRAPHS_DIR / '08_hourly_storage_pumped_hydro.png', dpi=300, bbox_inches='tight')
+    plt.close(fig_ph)
+
+    # CSV export: one row per hour, columns = scenario_batt_out, scenario_batt_in, scenario_ph_out, scenario_ph_in
+    storage_rows = []
+    for scenario_name in SCENARIOS:
+        data = all_data.get(scenario_name, {})
+        if not data or 'hourly_profiles' not in data:
+            continue
+        df = data['hourly_profiles'].copy()
+        if 'hour' not in df.columns:
+            df['hour'] = (df.index % 8760) % 24
+        hourly = df.groupby('hour')[['batt_in', 'batt_out', 'ph_in', 'ph_out']].mean()
+        hourly.columns = [f'{scenario_name}_{c}' for c in hourly.columns]
+        storage_rows.append(hourly)
+    if storage_rows:
+        pd.concat(storage_rows, axis=1).to_csv(TABLES_DIR / '08_hourly_storage_profiles.csv')
+    print(f"[OK] Hourly storage profiles saved to {OUTPUT_DIR}")
+
+
+def analyze_renewable_share_profiles(all_data):
+    """
+    Renewable share profiles: hourly (top) and monthly (bottom), all scenarios.
+    """
+    MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    fig, axes = plt.subplots(2, 1, figsize=(5.5, 8))
+
+    for scenario_name in SCENARIOS:
+        data    = all_data.get(scenario_name, {})
+        color   = COLORS.get(scenario_name, '#1f77b4')
+        label   = scenario_name.capitalize()
+        kwargs  = dict(color=color, linewidth=2, marker='o', markersize=4, label=label)
+
+        # Hourly
+        if data and 'hourly_profiles' in data:
+            df = data['hourly_profiles'].copy()
+            if 'hour' not in df.columns:
+                df['hour'] = (df.index % 8760) % 24
+            hourly = df.groupby('hour')['ren_share'].mean() * 100
+            axes[0].plot(hourly.index, hourly.values, **kwargs)
+
+        # Monthly
+        if data and 'monthly_profiles' in data:
+            df = data['monthly_profiles']
+            if 'month' in df.columns:
+                monthly = df.groupby('month')['ren_share'].mean() * 100
+            else:
+                monthly = df['ren_share'].iloc[:12].reset_index(drop=True) * 100
+                monthly.index = range(1, 13)
+            axes[1].plot(monthly.index, monthly.values, **kwargs)
+
+    axes[0].set_xlabel('Hour of Day', fontsize=12)
+    axes[0].set_ylabel('Renewable Share (%)', fontsize=12)
+    axes[0].set_title('Hourly Renewable Share', fontsize=13)
+    axes[0].set_xticks(range(0, 24, 2))
+    axes[0].tick_params(labelsize=10)
+    axes[0].legend(fontsize=10)
+    axes[0].grid(alpha=0.3)
+
+    axes[1].set_xlabel('Month', fontsize=12)
+    axes[1].set_ylabel('Renewable Share (%)', fontsize=12)
+    axes[1].set_title('Monthly Renewable Share', fontsize=13)
+    axes[1].set_xticks(range(1, 13))
+    axes[1].set_xticklabels(MONTHS, rotation=45)
+    axes[1].tick_params(labelsize=10)
+    axes[1].legend(fontsize=10)
+    axes[1].grid(alpha=0.3)
+
+    fig.tight_layout()
+    fig.savefig(GRAPHS_DIR / '09_renewable_share_profiles.png', dpi=300, bbox_inches='tight')
+    plt.close(fig)
+
+    # CSV export: hourly and monthly renewable share (%) per scenario
+    hourly_rows, monthly_rows = [], []
+    for scenario_name in SCENARIOS:
+        data = all_data.get(scenario_name, {})
+        if data and 'hourly_profiles' in data:
+            df = data['hourly_profiles'].copy()
+            if 'hour' not in df.columns:
+                df['hour'] = (df.index % 8760) % 24
+            s = df.groupby('hour')['ren_share'].mean() * 100
+            s.name = scenario_name
+            hourly_rows.append(s)
+        if data and 'monthly_profiles' in data:
+            df = data['monthly_profiles']
+            if 'month' in df.columns:
+                s = df.groupby('month')['ren_share'].mean() * 100
+            else:
+                s = df['ren_share'].iloc[:12].reset_index(drop=True) * 100
+                s.index = range(1, 13)
+            s.name = scenario_name
+            monthly_rows.append(s)
+    if hourly_rows:
+        df_h = pd.concat(hourly_rows, axis=1)
+        df_h.index.name = 'hour'
+        df_h.to_csv(TABLES_DIR / '09_renewable_share_hourly.csv')
+    if monthly_rows:
+        df_m = pd.concat(monthly_rows, axis=1)
+        df_m.index.name = 'month'
+        df_m.to_csv(TABLES_DIR / '09_renewable_share_monthly.csv')
+    print(f"[OK] Renewable share profiles saved to {OUTPUT_DIR}")
 
 # ============================================================================
 # INPUTS AND CAPACITY ANALYSIS
 # ============================================================================
 
 def analyze_inputs_and_capacity(all_data):
-    """
-    Analyze realized inputs (capacities and other parameters) by scenario.
-    """
-    summary_inputs = []
-    
+    """Summarize mean realized capacity inputs by scenario."""
+    rows = []
+
     for scenario_name in SCENARIOS:
         data = all_data.get(scenario_name, {})
         if not data or 'inputs_realized' not in data:
             continue
-        
+
         df = data['inputs_realized']
-        
-        # Get mean values for key inputs
-        input_summary = {'Scenario': scenario_name}
-        
-        # Try to capture common column names for capacities
-        capacity_cols = [col for col in df.columns if 'capacity' in col.lower() 
-                        or 'cap_' in col.lower()]
-        
-        for col in capacity_cols:
-            if col in df.columns:
-                input_summary[col] = df[col].mean()
-        
-        summary_inputs.append(input_summary)
-    
-    if summary_inputs:
-        inputs_df = pd.DataFrame(summary_inputs)
-        output_file = OUTPUT_DIR / "07_capacity_inputs.csv"
+        cap_cols = [col for col in df.columns if 'cap_' in col.lower()]
+        row = {'Scenario': scenario_name} | {col: round(df[col].mean(), 2) for col in cap_cols}
+        rows.append(row)
+
+    if rows:
+        inputs_df = pd.DataFrame(rows)
+        output_file = TABLES_DIR / "07_capacity_inputs.csv"
         inputs_df.to_csv(output_file, index=False)
         print(f"\n[OK] Capacity inputs saved to {output_file}")
         print(inputs_df.to_string())
-    
-    return summary_inputs if summary_inputs else None
+        return inputs_df
+
+    return None
+
+
+# Technology definitions — shared between generation and capacity plots
+TECH_COLORS = {
+    'Wind':                '#5F9EA0',
+    'Solar PV':            '#FFA500',
+    'Solar Thermal':       '#FFD700',
+    'Conventional Hydro':  '#4169E1',
+    'Run-of-River Hydro':  '#87CEEB',
+    'Other Renewable':     '#32CD32',
+    'Renewable Waste':     '#90EE90',
+    'Coal':                '#8B4513',
+    'Combined Cycle':      '#E74C3C',
+    'Gas Turbine':         '#FF6B6B',
+    'Vapor Turbine':       '#CD5C5C',
+    'Diesel':              '#A0522D',
+    'Cogeneration':        '#DC143C',
+    'Non-Renewable Waste': '#FF8C00',
+    'Nuclear':             '#FFD700',
+    'Battery':             '#9370DB',
+    'Pumped Hydro':        '#4682B4',
+}
+
+TECH_ORDER = [
+    'Wind', 'Solar PV', 'Solar Thermal', 'Conventional Hydro', 'Run-of-River Hydro',
+    'Other Renewable', 'Renewable Waste',
+    'Coal', 'Combined Cycle', 'Gas Turbine', 'Vapor Turbine',
+    'Diesel', 'Cogeneration', 'Non-Renewable Waste', 'Nuclear',
+]
+
+GENERATION_COLS = {
+    'Wind':                'wind_gen',
+    'Solar PV':            'solar_pv_gen',
+    'Solar Thermal':       'solar_thermal_gen',
+    'Conventional Hydro':  'conventional_hydro_gen',
+    'Run-of-River Hydro':  'run_of_river_hydro_gen',
+    'Other Renewable':     'other_renewable_gen',
+    'Renewable Waste':     'renewable_waste_gen',
+    'Coal':                'coal_gen',
+    'Combined Cycle':      'combined_cycle_gen',
+    'Gas Turbine':         'gas_turbine_gen',
+    'Vapor Turbine':       'vapor_turbine_gen',
+    'Diesel':              'diesel_gen',
+    'Cogeneration':        'cogeneration_gen',
+    'Non-Renewable Waste': 'non_renewable_waste_gen',
+    'Nuclear':             'nuclear_gen',
+}
+
+CAPACITY_COLS = {
+    'Wind':                'wind_cap_gw',
+    'Solar PV':            'solar_pv_cap_gw',
+    'Solar Thermal':       'solar_thermal_cap_gw',
+    'Conventional Hydro':  'conventional_hydro_cap_gw',
+    'Run-of-River Hydro':  'run_of_river_hydro_cap_gw',
+    'Other Renewable':     'other_renewable_cap_gw',
+    'Renewable Waste':     'renewable_waste_cap_gw',
+    'Coal':                'coal_cap_gw',
+    'Combined Cycle':      'combined_cycle_cap_gw',
+    'Gas Turbine':         'gas_turbine_cap_gw',
+    'Vapor Turbine':       'vapor_turbine_cap_gw',
+    'Diesel':              'diesel_cap_gw',
+    'Cogeneration':        'cogeneration_cap_gw',
+    'Non-Renewable Waste': 'nonrenewable_waste_cap_gw',
+    'Nuclear':             'nuclear_cap_gw',
+}
+
+
+def _plot_stacked_bars(ax, data_by_tech, totals, ylabel, title):
+    """Generic stacked bar chart with percentage labels for technologies >= 3%."""
+    x_pos  = np.arange(len(SCENARIOS))
+    bottom = np.zeros(len(SCENARIOS))
+
+    for tech in TECH_ORDER:
+        values = [data_by_tech[s].get(tech, 0) for s in SCENARIOS]
+        if sum(values) == 0:
+            continue
+
+        bars = ax.bar(x_pos, values, 0.5, label=tech, bottom=bottom,
+                      color=TECH_COLORS.get(tech, '#CCCCCC'), alpha=0.85,
+                      edgecolor='white', linewidth=0.5)
+
+        for i, (bar, val) in enumerate(zip(bars, values)):
+            if totals[SCENARIOS[i]] > 0:
+                pct = val / totals[SCENARIOS[i]] * 100
+                if pct >= 3:
+                    ax.text(bar.get_x() + bar.get_width() / 2., bottom[i] + bar.get_height() / 2.,
+                            f'{pct:.1f}%', ha='center', va='center',
+                            fontsize=7, fontweight='bold', color='white')
+        bottom += values
+
+    ax.set_ylabel(ylabel, fontsize=11, fontweight='bold')
+    ax.set_xlabel('Scenario', fontsize=11, fontweight='bold')
+    ax.set_title(title, fontsize=12, fontweight='bold', pad=10)
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels([s.capitalize() for s in SCENARIOS], fontsize=10)
+    ax.grid(axis='y', alpha=0.3)
 
 
 def analyze_generation_vs_capacity_mix(all_data):
     """
-    Analyze and plot generation mix and capacity mix by scenario.
-    Creates two stacked bar charts: one for generation (GWh) and one for capacity (GW).
-    Includes percentage labels for technologies >= 3% of total.
+    Stacked bar charts for generation mix (GWh) and capacity mix (GW) by scenario.
     """
-    tech_colors = {
-        # Renewables (bottom)
-        'Wind': '#5F9EA0',
-        'Solar PV': '#FFA500',
-        'Solar Thermal': '#FFD700',
-        'Conventional Hydro': '#4169E1',
-        'Run-of-River Hydro': '#87CEEB',
-        'Other Renewable': '#32CD32',
-        'Renewable Waste': '#90EE90',
-        # Non-Renewables (top)
-        'Coal': '#8B4513',
-        'Combined Cycle': '#E74C3C',
-        'Gas Turbine': '#FF6B6B',
-        'Vapor Turbine': '#CD5C5C',
-        'Diesel': '#A0522D',
-        'Cogeneration': '#DC143C',
-        'Non-Renewable Waste': '#FF8C00',
-        'Nuclear': '#FFD700',
-        # Storage
-        'Battery': '#9370DB',
-        'Pumped Hydro': '#4682B4',
-    }
-    
-    fig1, ax1 = plt.subplots(figsize=(6, 5))
-    fig2, ax2 = plt.subplots(figsize=(6, 5))
-    
-    # Mapping of display names to column names
-    generation_mappings = {
-        # Renewables (bottom)
-        'Wind': 'wind_gen',
-        'Solar PV': 'solar_pv_gen',
-        'Solar Thermal': 'solar_thermal_gen',
-        'Conventional Hydro': 'conventional_hydro_gen',
-        'Run-of-River Hydro': 'run_of_river_hydro_gen',
-        'Other Renewable': 'other_renewable_gen',
-        'Renewable Waste': 'renewable_waste_gen',
-        # Non-Renewables (top)
-        'Coal': 'coal_gen',
-        'Combined Cycle': 'combined_cycle_gen',
-        'Gas Turbine': 'gas_turbine_gen',
-        'Vapor Turbine': 'vapor_turbine_gen',
-        'Diesel': 'diesel_gen',
-        'Cogeneration': 'cogeneration_gen',
-        'Non-Renewable Waste': 'non_renewable_waste_gen',
-        'Nuclear': 'nuclear_gen',
-    }
-    
-    capacity_mappings = {
-        # Renewables (bottom)
-        'Wind': 'wind_cap_gw',
-        'Solar PV': 'solar_pv_cap_gw',
-        'Solar Thermal': 'solar_thermal_cap_gw',
-        'Conventional Hydro': 'conventional_hydro_cap_gw',
-        'Run-of-River Hydro': 'run_of_river_hydro_cap_gw',
-        'Other Renewable': 'other_renewable_cap_gw',
-        'Renewable Waste': 'renewable_waste_cap_gw',
-        # Non-Renewables (top)
-        'Coal': 'coal_cap_gw',
-        'Combined Cycle': 'combined_cycle_cap_gw',
-        'Gas Turbine': 'gas_turbine_cap_gw',
-        'Vapor Turbine': 'vapor_turbine_cap_gw',
-        'Diesel': 'diesel_cap_gw',
-        'Cogeneration': 'cogeneration_cap_gw',
-        'Non-Renewable Waste': 'nonrenewable_waste_cap_gw',
-        'Nuclear': 'nuclear_cap_gw',
-    }
-    
-    # Collect generation and capacity data
-    generation_by_tech = {scenario: {} for scenario in SCENARIOS}
-    capacity_by_tech = {scenario: {} for scenario in SCENARIOS}
-    total_generation = {scenario: 0 for scenario in SCENARIOS}
-    total_capacity = {scenario: 0 for scenario in SCENARIOS}
-    
+    # Collect data
+    gen_by_tech = {s: {} for s in SCENARIOS}
+    cap_by_tech = {s: {} for s in SCENARIOS}
+    total_gen   = {s: 0  for s in SCENARIOS}
+    total_cap   = {s: 0  for s in SCENARIOS}
+
     for scenario_name in SCENARIOS:
         data = all_data.get(scenario_name, {})
-        
-        # Get generation data
+
         if data and 'main_results' in data:
-            main_df = data['main_results']
-            
-            for tech, col in generation_mappings.items():
-                if col in main_df.columns:
-                    value = main_df[col].mean() / 1000  # Convert MWh to GWh
-                    generation_by_tech[scenario_name][tech] = value
-                    total_generation[scenario_name] += value
-                else:
-                    generation_by_tech[scenario_name][tech] = 0
-        
-        # Get capacity data
+            df = data['main_results']
+            for tech, col in GENERATION_COLS.items():
+                val = df[col].mean() if col in df.columns else 0
+                gen_by_tech[scenario_name][tech] = val
+                total_gen[scenario_name] += val
+
         if data and 'inputs_realized' in data:
-            inputs_df = data['inputs_realized']
-            
-            for tech, col in capacity_mappings.items():
-                if col in inputs_df.columns:
-                    value = inputs_df[col].mean()  # Already in GW
-                    capacity_by_tech[scenario_name][tech] = value
-                    total_capacity[scenario_name] += value
-                else:
-                    capacity_by_tech[scenario_name][tech] = 0
-    
-    # Prepare technology order
-    renewable_order = ['Wind', 'Solar PV', 'Solar Thermal', 'Conventional Hydro', 'Run-of-River Hydro', 'Other Renewable', 'Renewable Waste']
-    non_renewable_order = ['Coal', 'Combined Cycle', 'Gas Turbine', 'Vapor Turbine', 'Diesel', 'Cogeneration', 'Non-Renewable Waste', 'Nuclear']
-    all_techs = renewable_order + non_renewable_order
-    
-    x_pos = np.arange(len(SCENARIOS))
-    width = 0.5
-    
-    # ===== PLOT 1: GENERATION MIX WITH PERCENTAGES =====
-    bottom = np.zeros(len(SCENARIOS))
-    
-    for tech in all_techs:
-        values = [generation_by_tech[s].get(tech, 0) for s in SCENARIOS]
-        
-        # Skip if all values are 0
-        if sum(values) == 0:
-            continue
-        
-        bars = ax1.bar(x_pos, values, width, label=tech, bottom=bottom, 
-                       color=tech_colors.get(tech, '#CCCCCC'), alpha=0.85, 
-                       edgecolor='white', linewidth=0.5)
-        
-        # Add percentage labels on bars (only if >= 3%)
-        for i, (bar, val) in enumerate(zip(bars, values)):
-            if total_generation[SCENARIOS[i]] > 0:
-                pct = (val / total_generation[SCENARIOS[i]]) * 100
-                if pct >= 3:  # Only show if >= 3%
-                    height = bar.get_height()
-                    ax1.text(bar.get_x() + bar.get_width()/2., bottom[i] + height/2.,
-                            f'{pct:.1f}%', ha='center', va='center', fontsize=7, 
-                            fontweight='bold', color='white')
-        
-        bottom += values
-    
-    ax1.set_ylabel('Total Generation (GWh)', fontsize=11, fontweight='bold')
-    ax1.set_xlabel('Scenario', fontsize=11, fontweight='bold')
-    ax1.set_title('Electricity Generation Mix', fontsize=12, fontweight='bold', pad=10)
-    ax1.set_xticks(x_pos)
-    ax1.set_xticklabels([s.capitalize() for s in SCENARIOS], fontsize=10)
-    ax1.grid(axis='y', alpha=0.3)
-    
-    # ===== PLOT 2: CAPACITY MIX =====
-    bottom = np.zeros(len(SCENARIOS))
-    
-    for tech in all_techs:
-        values = [capacity_by_tech[s].get(tech, 0) for s in SCENARIOS]
-        
-        # Skip if all values are 0
-        if sum(values) == 0:
-            continue
-        
-        bars = ax2.bar(x_pos, values, width, label=tech, bottom=bottom, 
-                       color=tech_colors.get(tech, '#CCCCCC'), alpha=0.85, 
-                       edgecolor='white', linewidth=0.5)
-        
-        # Add percentage labels on bars (only if >= 3%)
-        for i, (bar, val) in enumerate(zip(bars, values)):
-            if total_capacity[SCENARIOS[i]] > 0:
-                pct = (val / total_capacity[SCENARIOS[i]]) * 100
-                if pct >= 3:  # Only show if >= 3%
-                    height = bar.get_height()
-                    ax2.text(bar.get_x() + bar.get_width()/2., bottom[i] + height/2.,
-                            f'{pct:.1f}%', ha='center', va='center', fontsize=7, 
-                            fontweight='bold', color='white')
-        
-        bottom += values
-    
-    ax2.set_ylabel('Total Installed Capacity (GW)', fontsize=11, fontweight='bold')
-    ax2.set_xlabel('Scenario', fontsize=11, fontweight='bold')
-    ax2.set_title('Installed Capacity Mix', fontsize=12, fontweight='bold', pad=10)
-    ax2.set_xticks(x_pos)
-    ax2.set_xticklabels([s.capitalize() for s in SCENARIOS], fontsize=10)
-    ax2.grid(axis='y', alpha=0.3)
-    
-    # Create legend outside plot 1
-    handles1, labels1 = ax1.get_legend_handles_labels()
-    fig1.legend(handles1, labels1, loc='center', bbox_to_anchor=(0.5, -0.05), 
-               ncol=4, fontsize=8, framealpha=0.95, title='Technology', 
-               title_fontsize=9)
+            df = data['inputs_realized']
+            for tech, col in CAPACITY_COLS.items():
+                val = df[col].mean() if col in df.columns else 0
+                cap_by_tech[scenario_name][tech] = val
+                total_cap[scenario_name] += val
+
+    # Generation plot
+    fig1, ax1 = plt.subplots(figsize=(6, 5))
+    _plot_stacked_bars(ax1, gen_by_tech, total_gen,
+                       ylabel='Total Generation (GWh)',
+                       title='Electricity Generation Mix')
+    handles, labels = ax1.get_legend_handles_labels()
+    fig1.legend(handles, labels, loc='center', bbox_to_anchor=(0.5, -0.05),
+                ncol=4, fontsize=8, framealpha=0.95, title='Technology', title_fontsize=9)
     fig1.subplots_adjust(bottom=0.25)
-    output_file1 = OUTPUT_DIR / "08_generation_mix.png"
-    fig1.savefig(output_file1, dpi=300, bbox_inches='tight')
+    fig1.savefig(GRAPHS_DIR / "08_generation_mix.png", dpi=300, bbox_inches='tight')
     plt.close(fig1)
-    
-    # Create legend outside plot 2
-    handles2, labels2 = ax2.get_legend_handles_labels()
-    fig2.legend(handles2, labels2, loc='center', bbox_to_anchor=(0.5, -0.05), 
-               ncol=4, fontsize=8, framealpha=0.95, title='Technology', 
-               title_fontsize=9)
+
+    # Capacity plot
+    fig2, ax2 = plt.subplots(figsize=(6, 5))
+    _plot_stacked_bars(ax2, cap_by_tech, total_cap,
+                       ylabel='Total Installed Capacity (GW)',
+                       title='Installed Capacity Mix')
+    handles, labels = ax2.get_legend_handles_labels()
+    fig2.legend(handles, labels, loc='center', bbox_to_anchor=(0.5, -0.05),
+                ncol=4, fontsize=8, framealpha=0.95, title='Technology', title_fontsize=9)
     fig2.subplots_adjust(bottom=0.25)
-    output_file2 = OUTPUT_DIR / "08_capacity_mix.png"
-    fig2.savefig(output_file2, dpi=300, bbox_inches='tight')
+    fig2.savefig(GRAPHS_DIR / "08_capacity_mix.png", dpi=300, bbox_inches='tight')
     plt.close(fig2)
     print(f"[OK] Generation and capacity mix saved to {OUTPUT_DIR}")
-
-
-# ============================================================================
-# CORRELATION AND REGRESSION ANALYSIS
-# ============================================================================
-
-def analyze_capacity_correlations(all_data):
-    """
-    Analyze correlations between capacity variables and renewable share.
-    Useful for understanding what drives renewable penetration.
-    """
-    for scenario_name in SCENARIOS:
-        data = all_data.get(scenario_name, {})
-        if not data:
-            continue
-        
-        # Merge main results with inputs if both exist
-        if 'main_results' in data and 'inputs_realized' in data:
-            main_df = data['main_results']
-            inputs_df = data['inputs_realized']
-            
-            # Ensure same number of rows
-            if len(main_df) == len(inputs_df):
-                merged_df = pd.concat([main_df, inputs_df], axis=1)
-                
-                # Find renewable share and capacity columns
-                ren_cols = [col for col in merged_df.columns if 'renewable' in col.lower() or 'ren_share' in col.lower()]
-                cap_cols = [col for col in merged_df.columns if 'capacity' in col.lower() or 'cap_' in col.lower()]
-                
-                if ren_cols and cap_cols:
-                    ren_col = ren_cols[0]
-                    
-                    # Calculate correlations
-                    correlations = {}
-                    for cap_col in cap_cols:
-                        if merged_df[cap_col].dtype in [np.float64, np.int64]:
-                            corr = merged_df[ren_col].corr(merged_df[cap_col])
-                            correlations[cap_col] = corr
-                    
-                    if correlations:
-                        print(f"\n{scenario_name.upper()} - Capacity Correlations with Renewable Share:")
-                        print("-" * 60)
-                        sorted_corr = sorted(correlations.items(), key=lambda x: abs(x[1]), reverse=True)
-                        for cap, corr in sorted_corr[:10]:
-                            print(f"  {cap}: {corr:+.3f}")
 
 
 # ============================================================================
@@ -1032,93 +1093,53 @@ def analyze_capacity_correlations(all_data):
 # ============================================================================
 
 def main():
-    """Main execution function."""
     print("\n" + "="*80)
     print("SPAIN 2030 RENEWABLE GENERATION - RESULTS ANALYSIS")
     print("="*80)
-    
-    # Check if data directory exists
+
     if not DATA_DIR.exists():
         print(f"\n[ERROR] Data directory not found: {DATA_DIR}")
-        print("Please ensure the detailed_results folder exists in output/")
         return
-    
-    print(f"\nData directory: {DATA_DIR}")
-    print(f"Output directory: {OUTPUT_DIR}")
-    
-    # Load all scenario data
-    print("\n" + "-"*80)
-    print("LOADING DATA")
-    print("-"*80)
+
+    print(f"\nData:   {DATA_DIR}")
+    print(f"Output: {OUTPUT_DIR}")
+
+    # Load data
     all_data = load_all_scenarios()
-    
-    # Check if any data was loaded
-    loaded_scenarios = [s for s in SCENARIOS if s in all_data and all_data[s]]
-    if not loaded_scenarios:
+    loaded = [s for s in SCENARIOS if s in all_data and all_data[s]]
+    if not loaded:
         print("\n[ERROR] No data loaded. Please check the data directory structure.")
         return
-    
-    print(f"\n[OK] Successfully loaded data for: {', '.join(loaded_scenarios)}")
-    
-    # Generate analyses
+    print(f"\n[OK] Loaded: {', '.join(loaded)}")
+
+    # Analyses
     print("\n" + "-"*80)
-    print("GENERATING ANALYSES")
-    print("-"*80)
-    
-    # 1. Summary statistics
-    print("\n1. Calculating main statistics...")
+
+    # --- Summary tables ---
     calculate_main_statistics(all_data)
-    
-    # 1b. Main Results Table (Paper Table 3)
-    print("\n1b. Generating Main Results Table...")
-    generate_main_results_table(all_data)
-    
-    # 2. Print detailed statistics
-    print("\n2. Printing detailed scenario statistics...")
-    print_scenario_details(all_data)
-    
-    # 3. Distribution analysis
-    print("\n3. Analyzing renewable share distributions...")
+    generate_latex_rows(all_data)
     analyze_renewable_share_distributions(all_data)
-    
-    print("\n4. Analyzing price distributions...")
     analyze_price_distributions(all_data)
-    
-    # 4. Hourly analysis
-    print("\n5. Analyzing hourly profiles...")
-    analyze_hourly_profiles(all_data)
-    
-    # 5. Monthly analysis
-    print("\n6. Analyzing monthly profiles...")
-    analyze_monthly_profiles(all_data)
-    
-    # 6. Capacity analysis
-    print("\n7. Analyzing capacity inputs...")
     analyze_inputs_and_capacity(all_data)
-    
-    # 6b. Generation vs Capacity mix
-    print("\n7b. Analyzing generation and capacity mix...")
     analyze_generation_vs_capacity_mix(all_data)
-    
-    # 7. Correlation analysis
-    print("\n8. Analyzing capacity correlations...")
-    analyze_capacity_correlations(all_data)
-    
+
+    # --- Hourly profiles ---
+    analyze_hourly_profiles(all_data)
+    analyze_hourly_generation_mix(all_data)
+    analyze_hourly_storage(all_data)
+
+    # --- Monthly profiles ---
+    analyze_monthly_profiles(all_data)
+    analyze_monthly_generation_mix(all_data)
+
+    # --- Combined hourly + monthly ---
+    analyze_renewable_share_profiles(all_data)
+    analyze_combined_profiles(all_data)
+
     print("\n" + "="*80)
     print("[OK] ANALYSIS COMPLETE")
+    print(f"Results saved to: {OUTPUT_DIR}")
     print("="*80)
-    print(f"\nResults saved to: {OUTPUT_DIR}")
-    print("\nGenerated files:")
-    print("  - 01_main_statistics.csv")
-    print("  - 02_main_results_table.csv (Main Results by Scenario)")
-    print("  - 02_main_results_table.tex (LaTeX format)")
-    print("  - 03_renewable_share_distributions.png")
-    print("  - 04_price_distributions.png")
-    print("  - 05_hourly_profiles.png")
-    print("  - 06_monthly_profiles.png")
-    print("  - 07_capacity_inputs.csv")
-    print("  - 08_generation_mix.png (Generation & Capacity mix)")
-
 
 if __name__ == "__main__":
     main()
