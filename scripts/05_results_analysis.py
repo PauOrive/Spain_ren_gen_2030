@@ -559,7 +559,6 @@ def analyze_combined_profiles(all_data):
     ax_hp.set_title('Hourly Price Profile', fontsize=13)
     ax_hp.set_xticks(range(0, 24, 2))
     ax_hp.tick_params(labelsize=10)
-    ax_hp.legend(fontsize=10)
     ax_hp.grid(alpha=0.3)
 
     ax_mp.set_xlabel('Month', fontsize=12)
@@ -568,7 +567,7 @@ def analyze_combined_profiles(all_data):
     ax_mp.set_xticks(range(1, 13))
     ax_mp.set_xticklabels(months, rotation=45)
     ax_mp.tick_params(labelsize=10)
-    ax_mp.legend(fontsize=10)
+    ax_mp.legend(fontsize=10, loc='upper center', bbox_to_anchor=(0.5, -0.25), ncol=3)
     ax_mp.grid(alpha=0.3)
 
     fig_price.tight_layout()
@@ -798,7 +797,7 @@ def analyze_hourly_storage(all_data):
         ax.set_xlabel('Hour of Day')
         ax.set_ylabel(ylabel)
         ax.set_xticks(range(0, 24, 2))
-        ax.legend(fontsize=7, ncol=2)
+        ax.legend(fontsize=7, ncol=2, loc='upper center', bbox_to_anchor=(0.5, -0.15))
         ax.grid(alpha=0.3)
 
     fig_batt.tight_layout()
@@ -833,7 +832,7 @@ def analyze_renewable_share_profiles(all_data):
     MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-    fig, axes = plt.subplots(2, 1, figsize=(5.5, 8))
+    fig, axes = plt.subplots(2, 1, figsize=(7, 9))
 
     for scenario_name in SCENARIOS:
         data    = all_data.get(scenario_name, {})
@@ -864,7 +863,6 @@ def analyze_renewable_share_profiles(all_data):
     axes[0].set_title('Hourly Renewable Share', fontsize=13)
     axes[0].set_xticks(range(0, 24, 2))
     axes[0].tick_params(labelsize=10)
-    axes[0].legend(fontsize=10)
     axes[0].grid(alpha=0.3)
 
     axes[1].set_xlabel('Month', fontsize=12)
@@ -873,7 +871,7 @@ def analyze_renewable_share_profiles(all_data):
     axes[1].set_xticks(range(1, 13))
     axes[1].set_xticklabels(MONTHS, rotation=45)
     axes[1].tick_params(labelsize=10)
-    axes[1].legend(fontsize=10)
+    axes[1].legend(fontsize=10, loc='upper center', bbox_to_anchor=(0.5, -0.25), ncol=3)
     axes[1].grid(alpha=0.3)
 
     fig.tight_layout()
