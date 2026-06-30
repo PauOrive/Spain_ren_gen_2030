@@ -21,13 +21,13 @@ We build a partial-equilibrium power system simulation model in which a social p
 
 The model covers up to 15 generation technologies following the PNIEC taxonomy, including coal, combined cycle gas (CCGT), nuclear, solar PV, wind, conventional and run-of-river hydro, and utility-scale batteries and pumped hydro storage. VRE generation is capped by hourly meteorological availability profiles derived from historical climate data. Hydropower is subject to dynamic hourly bounds and weekly volume constraints. Storage technologies are modelled with explicit charging and discharging decisions, round-trip efficiency, and state-of-charge constraints. Interconnections with France, Portugal, and Morocco are fixed exogenously.
 
-### Data Projections and Delta Calibration
+### Data Projections and Delta Calibration
 
 Rather than constructing synthetic 2030 profiles, the model scales historical hourly data (2020–2024) using variable-specific adjustment factors (deltas) derived from independent 2030 projections sourced from the PNIEC, Aurora Energy Research, the IEA World Energy Outlook, and BloombergNEF, among others. Each delta is computed relative to a historical baseline year and applied multiplicatively to the corresponding variable.
 
 Since the purpose of the paper is to analyze the electricity system in 2030, we have gathered data on projections of installed capacity, electricity demand and commodity prices to that target year. To handle the uncertainty on what will be the specific realization, we run 10,000 Monte Carlo simulations on 4 different scenarios, keeping track of the average renewable share in each iteration as well as other outcomes such as the total emissions, battery inflos and outflows, etcetera.
 
-### Monte Carlo Procedure
+### Monte Carlo Procedure
 
 The model is solved 10,000 times per scenario. In each iteration, a baseline year is drawn at random from 2020–2024, and a single 7-day window is extracted from each month of that year, yielding a 2,016-hour dataset. This design balances computational cost with meteorological robustness, ensuring adequate coverage of tail events including prolonged low-renewable periods.
 
