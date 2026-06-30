@@ -41,7 +41,7 @@ Five scenarios are evaluated:
 -   Nuclear: nuclear fleet retained at full capacity; renewable deployment reduced by 25% and battery deployment by 50% to capture the crowding-out effect on private investment.
 -   Optimistic: renewable deployment upsized by 25%, battery deployment by 50%, and demand price elasticity doubled to reflect enhanced demand response.
 -   Climate Change: hydro generation reduced by 20%; sectoral demand adjusted via a monthly scaling vector to reflect higher summer cooling loads and lower winter heating demand.
--   No Batteries_ battery deployment halted entirely, to isolate and quantify the systemic value of utility-scale storage.
+-   No Batteries: battery deployment halted entirely, to isolate and quantify the systemic value of utility-scale storage.
 
 ## How to navigate the repository
 
