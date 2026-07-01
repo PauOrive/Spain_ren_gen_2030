@@ -1,6 +1,13 @@
 # Spain_ren_gen_2030
 
-This is the repository for the paper "A stochastic policy assessment of Spain’s 81% renewable electricity target for 2030", by Pau Orive and Cristobal Blanco, published in the journal Energy for Sustainable Development, in the special issue on "Renewable Energy for a Zero Carbon Future - Progress and Pathways to 2030". 
+This is the repository for the paper: ["A stochastic policy assessment of Spain’s 81% renewable electricity target for 2030"](https://www.sciencedirect.com/science/article/pii/S0973082626001456), by **Pau Orive** and **Cristobal Blanco**, published in:
+
+- **Journal**: Energy for Sustainable Development
+- **Special issue**: "Renewable Energy for a Zero Carbon Future - Progress and Pathways to 2030"
+- **Date**: October 2026
+- **Article**: 102068
+- **Volume**: Volume 94
+- **DOI**: 10.1016/j.esd.2026.102068
 
 ## Abstract 
 
